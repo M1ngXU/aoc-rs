@@ -1,4 +1,4 @@
-#![feature(iter_repeat_n, iter_from_generator)]
+#![feature(iter_repeat_n, iter_from_generator, iter_map_windows)]
 
 pub mod prelude {
 	pub use crate::itertools2::*;

@@ -2,11 +2,9 @@ use aoc_rs::prelude::*;
 
 fn one() {
 	let p = sb(
-		NL,
-		to_p(|s| -> (_, _) {
-			s.chars()
-				.collect_vec()
-				.chunks(s.len() / 2)
+		LE,
+		map(ch, |c| -> (_, _) {
+			c.chunks(c.len() / 2)
 				.map(|c| c.iter().copied().collect::<HashSet<_>>())
 				.collect_tuple()
 				.unwrap()
@@ -24,9 +22,10 @@ fn one() {
 }
 
 fn two() {
-	let p = sb(NL, to_p(|s| s.chars().collect::<HashSet<_>>()));
+	let p = sb(LE, ch);
 	let s = pi!(p);
 	s.into_iter()
+		.map(|v| v.into_iter().collect::<HashSet<_>>())
 		.tuples()
 		.map(|(a, b, c)| {
 			match a

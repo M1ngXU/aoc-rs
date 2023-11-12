@@ -1,17 +1,11 @@
 pub mod cast;
+pub mod display_blocks;
+pub mod save;
+pub mod transpose;
+
 pub use cast::*;
+pub use display_blocks::*;
+pub use save::*;
+pub use transpose::*;
 
-use arboard::Clipboard;
-
-pub trait Save {
-	fn save(self);
-}
-impl<S: ToString> Save for S {
-	fn save(self) {
-		println!("Saved result: {}", self.to_string());
-		Clipboard::new()
-			.unwrap()
-			.set_text(self.to_string())
-			.unwrap();
-	}
-}
+// TODO add aliases for itertools functions with 2 letters

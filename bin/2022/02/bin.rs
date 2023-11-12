@@ -1,8 +1,8 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-	let mut p = sb(
-		NL,
+	let p = sb(
+		LE,
 		map(
 			sb(
 				" ",
@@ -21,8 +21,8 @@ fn one() {
 }
 
 fn two() {
-	let mut p = sb(
-		NL,
+	let p = sb(
+		LE,
 		map(
 			sb(
 				" ",

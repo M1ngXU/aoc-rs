@@ -26,3 +26,35 @@ path = "bin/2022/02/bin.rs"
 [[bin]]
 name = "2203"
 path = "bin/2022/03/bin.rs"
+
+[[bin]]
+name = "2204"
+path = "bin/2022/04/bin.rs"
+
+[[bin]]
+name = "2205"
+path = "bin/2022/05/bin.rs"
+
+[[bin]]
+name = "2206"
+path = "bin/2022/06/bin.rs"
+
+[[bin]]
+name = "2207"
+path = "bin/2022/07/bin.rs"
+
+[[bin]]
+name = "2208"
+path = "bin/2022/08/bin.rs"
+
+[[bin]]
+name = "2209"
+path = "bin/2022/09/bin.rs"
+
+[[bin]]
+name = "2210"
+path = "bin/2022/10/bin.rs"
+
+[[bin]]
+name = "2211"
+path = "bin/2022/11/bin.rs"

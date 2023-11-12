@@ -30,15 +30,15 @@ pub use pi;
 
 #[cfg(windows)]
 mod consts {
-	pub const NL: &str = "\r\n";
-	pub const NLNL: &str = "\r\n\r\n";
-	pub const NLNLNL: &str = "\r\n\r\n\r\n";
+	pub const LE: &str = "\r\n";
+	pub const LLE: &str = "\r\n\r\n";
+	pub const LLLE: &str = "\r\n\r\n\r\n";
 }
 #[cfg(not(windows))]
 mod consts {
-	pub const NL: &str = "\n";
-	pub const NLNL: &str = "\n\n";
-	pub const NLNLNL: &str = "\n\n\n";
+	pub const LE: &str = "\n";
+	pub const LLE: &str = "\n\n";
+	pub const LLLe: &str = "\n\n\n";
 }
 pub use consts::*;
 
@@ -60,6 +60,58 @@ type I<'a> = &'a str;
 pub fn to_p<'a, O>(mut f: impl FnMut(I<'a>) -> O) -> impl FnMut(I<'a>) -> IResult<I<'a>, O> {
 	move |i: I| Ok(("", f(i)))
 }
+
+pub fn pu<'a, O>(
+	p: &'static str,
+	f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
+) -> impl FnMut(I<'a>) -> IResult<I<'a>, O> {
+	terminated(map_parser(take_until(p), f), tag(p))
+}
+
+#[macro_export]
+macro_rules! t {
+	() => {
+		t!(@);
+	};
+	(@) => {
+		t!(LE);
+	};
+	($t:tt) => {
+		tag($t)
+	};
+	($t:tt $($r:tt)*) => {
+		pair(t!($t), t!($($r)*))
+	};
+}
+pub use t;
+
+#[cfg(windows)]
+#[macro_export]
+macro_rules! c {
+	(@) => {
+		"\r\n"
+	};
+	($t:literal) => {
+		$t
+	};
+	($t:tt $($r:tt)*) => {
+		concat!(c!($t), $($r),*)
+	};
+}
+#[cfg(not(windows))]
+#[macro_export]
+macro_rules! c {
+	(@) => {
+		"\n"
+	};
+	($t:literal) => {
+		$t
+	};
+	($t:tt $($r:tt)*) => {
+		concat!(c!($t), $($r),*)
+	};
+}
+pub use c;
 
 pub fn id<'a>(x: I<'a>) -> IResult<I<'a>, I<'a>> {
 	Ok(("", x))
@@ -103,6 +155,11 @@ pub fn dlt<'a>(
 	second: &'static str,
 ) -> impl FnMut(I<'a>) -> IResult<I<'a>, I<'a>> {
 	delimited(tag(first), take_until(second), tag(second))
+}
+
+/// Splits the input into a char array
+pub fn ch<'a>(i: I<'a>) -> IResult<I<'a>, Vec<char>> {
+	Ok(("", i.chars().collect()))
 }
 
 #[cfg(test)]
