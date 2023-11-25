@@ -8,8 +8,9 @@ edition = "2021"
 [dependencies]
 arboard = "3.2.1"
 cfg-if = "1.0.0"
-itertools = "0.11.0"
+itertools = "0.12.0"
 nom = "7.1.3"
+regex = "1.10.2"
 
 [features]
 ex = []
@@ -58,3 +59,7 @@ path = "bin/2022/10/bin.rs"
 [[bin]]
 name = "2211"
 path = "bin/2022/11/bin.rs"
+
+[[bin]]
+name = "cses01"
+path = "bin/cses/01.rs"
