@@ -1,7 +1,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sb(LLE, sb(LE, id));
+    let p = _sb(LLE, _sb(LE, id));
     let s = pi!(p);
     let stacks = s[0].clone();
     let instructions = s[1].clone();
@@ -45,7 +45,7 @@ fn one() {
 }
 
 fn two() {
-    let p = sb(LLE, sb(LE, id));
+    let p = _sb(LLE, _sb(LE, id));
     let s = pi!(p);
     let stacks = s[0].clone();
     let instructions = s[1].clone();

@@ -1,7 +1,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    pi!(sb(LLE, map(sb(LE, pn), |v| v.into_iter().s())))
+    pi!(_sb(LLE, map(_sb(LE, pn), |v| v.into_iter().s())))
         .into_iter()
         .max()
         .unwrap()
@@ -9,7 +9,7 @@ fn one() {
 }
 
 fn two() {
-    pi!(sb(LLE, map(sb(LE, pn), |v| v.into_iter().s())))
+    pi!(_sb(LLE, map(_sb(LE, pn), |v| v.into_iter().s())))
         .into_iter()
         .sorted()
         .rev()

@@ -3,7 +3,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sb(
+    let p = _sb(
         LLE,
         tuple((
             delimited(
@@ -13,7 +13,7 @@ fn one() {
             ),
             delimited(
                 tag("  Starting items: "),
-                map_parser(take_until(LE), sb(", ", pn)),
+                map_parser(take_until(LE), _sb(", ", pn)),
                 tag(LE),
             ),
             delimited(
@@ -70,11 +70,11 @@ fn one() {
 }
 
 fn two() {
-    let p = sb(
+    let p = _sb(
         LLE,
         tpl((
             dlt(t!("Monkey "), mp(take_until(":"), pn), t!(":" @)),
-            pcd(t!("  Starting items: "), pu(LE, sb(", ", pn))),
+            pcd(t!("  Starting items: "), pu(LE, _sb(", ", pn))),
             dlt(
                 t!("  Operation: new = old "),
                 pair(

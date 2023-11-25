@@ -3,7 +3,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sb(LE, chp(u8));
+    let p = _sb(LE, chp(u8));
     let s = pi!(p);
     let mut sum = 0;
     for y in 0..s.len() {
@@ -21,7 +21,7 @@ fn one() {
 }
 
 fn two() {
-    let p = sb(
+    let p = _sb(
         LE,
         map(ch, |c| {
             c.into_iter()

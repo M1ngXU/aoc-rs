@@ -3,7 +3,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sb(
+    let p = _sb(
         LE,
         pair(
             alt((tag("L"), tag("U"), tag("R"), tag("D"))),
@@ -57,7 +57,7 @@ fn one() {
 }
 
 fn two() {
-    let p = sb(
+    let p = _sb(
         LE,
         pair(
             alt((tag("L"), tag("U"), tag("R"), tag("D"))),

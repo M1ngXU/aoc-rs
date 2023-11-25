@@ -1,10 +1,10 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sb(
+    let p = _sb(
         LE,
         map(
-            sb(
+            _sb(
                 " ",
                 to_p(|s| match s {
                     "A" | "X" => 1, // r
@@ -21,10 +21,10 @@ fn one() {
 }
 
 fn two() {
-    let p = sb(
+    let p = _sb(
         LE,
         map(
-            sb(
+            _sb(
                 " ",
                 to_p(|s| match s {
                     "A" | "X" => 0, // r

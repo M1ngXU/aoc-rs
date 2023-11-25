@@ -1,7 +1,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sb(LE, sb(",", sb("-", pn)));
+    let p = _sb(LE, _sb(",", _sb("-", pn)));
     let s = pi!(p);
     s.into_iter()
         .map(|l| ((l[0][0], l[0][1]), (l[1][0], l[1][1])))
@@ -11,7 +11,7 @@ fn one() {
 }
 
 fn two() {
-    let p = sb(LE, sb(",", sb("-", pn)));
+    let p = _sb(LE, _sb(",", _sb("-", pn)));
     let s = pi!(p);
     s.into_iter()
         .map(|l| ((l[0][0], l[0][1]), (l[1][0], l[1][1])))

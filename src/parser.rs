@@ -13,23 +13,84 @@ mod prelude {
     };
     pub use nom::*;
 }
+use std::{fs::File, path::Path};
+
 use itertools::Itertools;
 use nom::error::{Error, ErrorKind};
 pub use prelude::*;
 
 #[macro_export]
-/// parses `input.txt` using the parsers, then unwraps
+/// `r!(some_string)` is equivalent to `Regex::new(some_string).unwrap()`
+macro_rules! r {
+    ($($t:tt)*) => {
+        regex::Regex::new($($t)*).unwrap()
+    };
+}
+pub use r;
+
+pub fn download_input(dir: &Path) {
+    if dir.join("input.txt").exists() {
+        return;
+    }
+    let mut f = File::create(dir.join("input.txt")).unwrap();
+    let base = format!(
+        "https://adventofcode.com/{}/day/{}",
+        dir.parent().unwrap().file_name().unwrap().to_string_lossy(),
+        dir.file_name().unwrap().to_string_lossy(),
+    );
+    let mut res = reqwest::blocking::Client::new()
+        .get(&format!("{}/input", base))
+        .header("Cookie", include_str!("../cookie.txt"))
+        .send()
+        .unwrap();
+    assert!(res.status().is_success());
+    res.copy_to(&mut f).unwrap();
+
+    let res = reqwest::blocking::get(base).unwrap();
+    assert!(res.status().is_success());
+    let binding = res.text().unwrap();
+    let example = r!("<\\w*>|</\\w*>")
+        .replace_all(
+            binding
+                .split_once("<pre><code>")
+                .unwrap()
+                .1
+                .split_once("</code></pre>")
+                .unwrap()
+                .0
+                .trim(),
+            "",
+        )
+        .to_string();
+
+    println!("Found example:");
+    println!("====================");
+    println!("{}", example);
+    println!("====================");
+
+    std::fs::write(dir.join("example.txt"), example).unwrap();
+}
+#[macro_export]
+/// parses `input.txt` using the parsers, then unwraps. leaks the input string
 macro_rules! pi {
 	($($t:tt)*) => {{
 		// no need to make $($t)* mutable for the caller
 		let mut p = $($t)*;
+        let current = std::path::PathBuf::from(file!());
+        let dir = current.parent().unwrap();
+        download_input(dir);
+        let s = Box::leak(if cfg!(any(feature = "dex", feature = "ex")) {
+				std::fs::read_to_string(dir.join("example.txt")).unwrap()
+		} else {
+				std::fs::read_to_string(dir.join("input.txt")).unwrap()
+		}.into_boxed_str());
 		cfg_if::cfg_if! {
 			if #[cfg(feature = "dex")] {
-				dbg!(p(include_str!("example.txt")).p())
+				dbg!(p(s).p())
 			} else if #[cfg(feature = "ex")] {
-				p(include_str!("example.txt")).p()
+				p(s).p()
 			} else {
-				p(include_str!("input.txt")).p()
+				p(s).p()
 			}
 		}
 	}};
@@ -69,6 +130,7 @@ pub fn to_p<'a, O>(mut f: impl FnMut(I<'a>) -> O) -> impl FnMut(I<'a>) -> IResul
     move |i: I| Ok(("", f(i)))
 }
 
+/// Parse until `p` and map the result with `f`
 pub fn pu<'a, O>(
     p: &'static str,
     f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
@@ -125,8 +187,8 @@ pub fn id(x: I) -> IResult<I, I> {
     Ok(("", x))
 }
 
-/// Split by: Vec<&str>
-pub fn sb<'a, O>(
+/// Split by: Vec<&str>, maybe use `sb` instead??
+pub fn _sb<'a, O>(
     p: &'static str,
     f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
 ) -> impl FnMut(I<'a>) -> IResult<I<'a>, Vec<O>> {
@@ -137,6 +199,21 @@ pub fn sb<'a, O>(
         ),
         opt(tag(p)),
     )
+}
+
+/// Split by: Vec<&str>, with optional trailing del
+pub fn sbd<'a, O>(
+    p: &'static str,
+    f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
+) -> impl FnMut(I<'a>) -> IResult<I<'a>, Vec<O>> {
+    terminated(separated_list0(tag(p), f), opt(tag(p)))
+}
+/// Split by: Vec<&str>, without trailing del
+pub fn sb<'a, O>(
+    p: &'static str,
+    f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
+) -> impl FnMut(I<'a>) -> IResult<I<'a>, Vec<O>> {
+    separated_list0(tag(p), f)
 }
 
 /// Parse number: isize
@@ -216,8 +293,8 @@ mod tests {
 
     #[test]
     fn test_sb() {
-        assert_eq!(sb("\n", id)("1\n2\n3\n"), Ok(("", vec!["1", "2", "3"])));
-        assert_eq!(sb("\n", id)("1\n2\n3"), Ok(("", vec!["1", "2", "3"])));
+        assert_eq!(_sb("\n", id)("1\n2\n3\n"), Ok(("", vec!["1", "2", "3"])));
+        assert_eq!(_sb("\n", id)("1\n2\n3"), Ok(("", vec!["1", "2", "3"])));
     }
 
     #[test]

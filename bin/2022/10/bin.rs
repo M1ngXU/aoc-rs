@@ -5,7 +5,7 @@ use std::vec;
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sb(
+    let p = _sb(
         LE,
         alt((
             map(preceded(t!("addx "), pn), |n| (2, n)),
@@ -32,7 +32,7 @@ fn one() {
 }
 
 fn two() {
-    let p = sb(
+    let p = _sb(
         LE,
         alt((
             map(preceded(tag("addx "), pn), |n| (2, n)),
