@@ -35,9 +35,11 @@ fn one() {
 
             adj
         },
-        |(_, (x, y))| s[*y][*x] == 'E',
+        |_, _| 0,
+        |_, (x, y)| s[*y][*x] == 'E',
     )
     .unwrap()
+    .1
     .len()
     .save();
 }
@@ -46,6 +48,8 @@ fn two() {
     let p = _sb("\n", ch);
     let s = pi!(p);
     let mut min = usize::MAX;
+    let end_y = s.iter().position(|r| r.contains(&'E')).unwrap();
+    let end_x = s[end_y].iter().position(|&c| c == 'E').unwrap();
     for y in 0..s.len() {
         for x in 0..s[0].len() {
             if replace(s[y][x]) != replace('a') {
@@ -71,9 +75,15 @@ fn two() {
 
                         adj
                     },
-                    |(_, (x, y))| s[*y][*x] == 'E',
+                    |_, (x, y)| {
+                        (((*x as isize - end_x as isize) as f64).powi(2)
+                            + ((*y as isize - end_y as isize) as f64).powi(2))
+                        .sqrt()
+                        .round() as u32
+                    },
+                    |_, (x, y)| s[*y][*x] == 'E',
                 )
-                .map(|v| v.len())
+                .map(|(_, v)| v.len())
                 .unwrap_or(usize::MAX),
             );
         }

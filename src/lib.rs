@@ -8,6 +8,10 @@ pub mod prelude {
     pub use crate::parser::*;
     pub use crate::util::*;
     pub use itertools::Itertools;
+    pub use range_utils::*;
+    pub use rayon::prelude::*;
+    // who uses `bytes` submodule anyway
+    #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
     pub use regex::*;
 
     pub use std::collections::*;
