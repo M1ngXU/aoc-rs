@@ -4,9 +4,10 @@ mod prelude {
         take_till as tt, take_till1 as tt1, take_until as tu, take_until1 as tu1, take_while as tw,
         take_while1 as tw1, take_while_m_n as twmn, *,
     };
-    pub use nom::character::complete::*;
+    pub use nom::character::complete::{line_ending as le, *};
     pub use nom::combinator::{map_opt as mo, map_parser as mp, *};
     pub use nom::multi::{count as rpt, many0 as mn0, many1 as mn1, many_m_n as mnmn, *};
+    pub use nom::number::complete::{double, float};
     pub use nom::sequence::{
         delimited as dlt, pair, preceded as pcd, separated_pair as spair, terminated as tmd,
         tuple as tpl, *,
@@ -97,20 +98,6 @@ macro_rules! pi {
 }
 pub use pi;
 
-#[cfg(windows)]
-mod consts {
-    pub const LE: &str = "\r\n";
-    pub const LLE: &str = "\r\n\r\n";
-    pub const LLLE: &str = "\r\n\r\n\r\n";
-}
-#[cfg(not(windows))]
-mod consts {
-    pub const LE: &str = "\n";
-    pub const LLE: &str = "\n\n";
-    pub const LLLe: &str = "\n\n\n";
-}
-pub use consts::*;
-
 pub trait ParseAndUnwrap<O> {
     fn p(self) -> O;
 }
@@ -141,10 +128,10 @@ pub fn pu<'a, O>(
 #[macro_export]
 macro_rules! t {
 	() => {
-		t!(@);
+		t!(@)
 	};
 	(@) => {
-		t!(LE);
+		le
 	};
 	($t:tt) => {
 		tag($t)
@@ -155,36 +142,12 @@ macro_rules! t {
 }
 pub use t;
 
-#[cfg(windows)]
-#[macro_export]
-macro_rules! c {
-	(@) => {
-		"\r\n"
-	};
-	($t:literal) => {
-		$t
-	};
-	($t:tt $($r:tt)*) => {
-		concat!(c!($t), $($r),*)
-	};
-}
-#[cfg(not(windows))]
-#[macro_export]
-macro_rules! c {
-	(@) => {
-		"\n"
-	};
-	($t:literal) => {
-		$t
-	};
-	($t:tt $($r:tt)*) => {
-		concat!(c!($t), $($r),*)
-	};
-}
-pub use c;
-
 pub fn id(x: I) -> IResult<I, I> {
     Ok(("", x))
+}
+
+pub fn lle(i: I) -> IResult<I, (I, I)> {
+    pair(le, le)(i)
 }
 
 /// Split by: Vec<&str>, maybe use `sb` instead??
@@ -209,30 +172,21 @@ pub fn sbd<'a, O>(
     terminated(separated_list0(tag(p), f), opt(tag(p)))
 }
 /// Split by: Vec<&str>, without trailing del
-pub fn sb<'a, O>(
-    p: &'static str,
+pub fn sb<'a, O, U>(
+    p: impl FnMut(I<'a>) -> IResult<I<'a>, U>,
     f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
 ) -> impl FnMut(I<'a>) -> IResult<I<'a>, Vec<O>> {
-    separated_list0(tag(p), f)
+    separated_list0(p, f)
 }
 
 /// Parse number: isize
 pub fn pn(i: I) -> IResult<I, isize> {
-    map_res(recognize(pair(opt(one_of("+-")), digit1)), |s: I| {
-        s.parse::<isize>()
-    })(i)
+    i128(i).map(|(i, n)| (i, n as isize))
 }
 
 /// Parse float: f64
 pub fn pf(i: I) -> IResult<I, f64> {
-    map_res(
-        recognize(tuple((
-            opt(one_of("+-")),
-            digit0,
-            opt(tuple((tag("."), digit0))),
-        ))),
-        |s: I| s.parse::<f64>(),
-    )(i)
+    double(i)
 }
 
 pub fn dlt2<'a>(

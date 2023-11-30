@@ -9,7 +9,7 @@ use std::{
 pub trait FromIsize {
     fn from_isize(n: isize) -> Self;
 }
-macro_rules! primite_from_isize {
+macro_rules! primitive_from_isize {
     ($($t:ty),*) => {
         $(
             impl FromIsize for $t {
@@ -20,7 +20,7 @@ macro_rules! primite_from_isize {
         )*
     };
 }
-primite_from_isize!(usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64);
+primitive_from_isize!(usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64);
 
 /// Dijkstra's algorithm on a 2d grid with diagonal movement, each can have a different length
 pub fn dijkstra2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize, T: Clone>(
@@ -28,7 +28,7 @@ pub fn dijkstra2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize, T: C
     start: (isize, isize),
     start_cost: C,
     end: (isize, isize),
-) -> Option<(C, Vec<T>)>
+) -> Option<(C, Vec<(C, T)>)>
 where
     for<'a> &'a C: Add<&'a C, Output = C>,
 {
@@ -41,7 +41,7 @@ pub fn dijkstra2<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize, T: Cl
     start: (isize, isize),
     start_cost: C,
     end: (isize, isize),
-) -> Option<(C, Vec<T>)>
+) -> Option<(C, Vec<(C, T)>)>
 where
     for<'a> &'a C: Add<&'a C, Output = C>,
 {
@@ -55,7 +55,7 @@ fn _dijkstra2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize, T: Clon
     start_cost: C,
     end: (isize, isize),
     diagonal: bool,
-) -> Option<(C, Vec<T>)>
+) -> Option<(C, Vec<(C, T)>)>
 where
     for<'a> &'a C: Add<&'a C, Output = C>,
 {
@@ -95,7 +95,7 @@ where
         (
             c,
             v.into_iter()
-                .map(|(x, y)| grid[y as usize][x as usize].1.clone())
+                .map(|(c, (x, y))| (c, grid[y as usize][x as usize].1.clone()))
                 .collect(),
         )
     })
@@ -145,7 +145,7 @@ pub fn dijkstra<C: PartialEq + Eq + PartialOrd + Ord + Clone, V: PartialEq + Eq 
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
     heuristic: impl Fn(&C, &V) -> C,
     is_destination: impl Fn(&C, &V) -> bool,
-) -> Option<(C, Vec<V>)>
+) -> Option<(C, Vec<(C, V)>)>
 where
     for<'a> &'a C: Add<&'a C, Output = C>,
 {
@@ -163,13 +163,11 @@ where
         }
         visited.insert(next.value.clone());
         if is_destination(&next.cost, &next.value) {
-            let mut path = vec![];
-            let mut current = next.value;
-            while let Some((_, predecessor)) = predecessor.remove(&current) {
-                if predecessor != start_vertex {
-                    path.push(current.clone());
-                }
+            let mut current = (next.cost.clone(), next.value.clone());
+            let mut path = vec![current.clone()];
+            while let Some(predecessor) = predecessor.remove(&current.1) {
                 current = predecessor;
+                path.push(current.clone());
             }
             path.reverse();
             return Some((next.cost, path));

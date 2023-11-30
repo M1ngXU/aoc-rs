@@ -12,7 +12,7 @@ enum FS {
 
 fn one() {
     // add newline to the beginning of the file
-    let p = _sb(c!(@ "$"), _sb(LE, id));
+    let p = sb(t!(@ "$"), sb(le, id));
     let s = pi!(p);
     let mut cwd = PathBuf::from("/");
     let mut dir = FS::Dir(HashMap::new());
@@ -28,8 +28,8 @@ fn one() {
             }
         } else {
             let s = command[1..].join("\n");
-            let (s, output) = _sb(
-                "\n",
+            let (s, output) = sb(
+                le,
                 tuple((
                     alt((
                         map(map_parser(take_until(" "), pn), FS::File),
@@ -93,7 +93,7 @@ fn folder_sizes(fs: &FS) -> Vec<isize> {
 
 fn two() {
     // add newline to the beginning of the file
-    let p = _sb("\r\n$ ", _sb(LE, id));
+    let p = sb(t!(@ "$"), sb(le, id));
     let s = pi!(p);
     let mut cwd = PathBuf::from("/");
     let mut dir = HashMap::new();
@@ -109,8 +109,8 @@ fn two() {
             }
         } else {
             let s = command[1..].join("\n");
-            let (s, output) = _sb(
-                "\n",
+            let (s, output) = sb(
+                le,
                 tuple((
                     alt((
                         map(map_parser(take_until(" "), pn), FS::File),

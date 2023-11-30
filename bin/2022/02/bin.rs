@@ -1,11 +1,11 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = _sb(
-        LE,
+    let p = sb(
+        le,
         map(
-            _sb(
-                " ",
+            sb(
+                t!(" "),
                 to_p(|s| match s {
                     "A" | "X" => 1, // r
                     "B" | "Y" => 2, // p
@@ -21,11 +21,11 @@ fn one() {
 }
 
 fn two() {
-    let p = _sb(
-        LE,
+    let p = sb(
+        le,
         map(
-            _sb(
-                " ",
+            sb(
+                t!(" "),
                 to_p(|s| match s {
                     "A" | "X" => 0, // r
                     "B" | "Y" => 1, // p

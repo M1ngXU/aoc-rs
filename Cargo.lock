@@ -34,7 +34,7 @@ dependencies = [
  "cfg-if",
  "itertools",
  "nom",
- "range-utils 0.1.0 (git+https://github.com/M1ngXU/range-utils.git)",
+ "range-utils 0.1.0",
  "rayon",
  "regex",
  "reqwest",
@@ -924,11 +924,11 @@ dependencies = [
 [[package]]
 name = "range-utils"
 version = "0.1.0"
+source = "git+https://github.com/M1ngXU/range-utils.git#4f6812e57e7c4242bcbe8ca6fe2bd6373dac3c32"
 
 [[package]]
 name = "range-utils"
-version = "0.1.0"
-source = "git+https://github.com/M1ngXU/range-utils.git#4f6812e57e7c4242bcbe8ca6fe2bd6373dac3c32"
+version = "0.1.1"
 
 [[package]]
 name = "rayon"

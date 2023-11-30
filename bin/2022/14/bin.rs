@@ -3,7 +3,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sb("\n", sb(" -> ", spair(mp(tu(","), pn), t!(","), pn)));
+    let p = sb(t!(), sb(t!(" -> "), spair(mp(tu(","), pn), t!(","), pn)));
     let s = pi!(p);
     let max_x = s.iter().flatten().map(|(x, _)| x).copied().mx().max(500);
     let min_x = s.iter().flatten().map(|(x, _)| x).copied().mn().min(500);
@@ -64,7 +64,7 @@ fn one() {
 }
 
 fn two() {
-    let p = sb("\n", sb(" -> ", spair(mp(tu(","), pn), t!(","), pn)));
+    let p = sb(t!(), sb(t!(" -> "), spair(mp(tu(","), pn), t!(","), pn)));
     let s = pi!(p);
     let max_y = s.iter().flatten().map(|(_, y)| y).copied().mx().max(0);
     let mut grid = HashSet::new();

@@ -3,8 +3,8 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = _sb(
-        LE,
+    let p = sb(
+        le,
         pair(
             alt((tag("L"), tag("U"), tag("R"), tag("D"))),
             preceded(t!(" "), pn),
@@ -57,8 +57,8 @@ fn one() {
 }
 
 fn two() {
-    let p = _sb(
-        LE,
+    let p = sb(
+        le,
         pair(
             alt((tag("L"), tag("U"), tag("R"), tag("D"))),
             preceded(tag(" "), pn),

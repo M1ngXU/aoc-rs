@@ -13,7 +13,7 @@ enum Pkg {
 fn p2<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Pkg> {
     alt((
         map(pn, Pkg::N),
-        map(dlt(t!("["), sb(",", |i| p2()(i)), t!("]")), Pkg::P),
+        map(dlt(t!("["), sb(t!(","), |i| p2()(i)), t!("]")), Pkg::P),
     ))
 }
 

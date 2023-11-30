@@ -2,47 +2,34 @@
 
 use aoc_rs::prelude::*;
 
-fn one() {
-    let p = _sb(
-        LLE,
-        tuple((
-            delimited(
-                tag("Monkey "),
-                map_parser(take_until(":"), pn),
-                pair(tag(":"), tag(LE)),
-            ),
-            delimited(
-                tag("  Starting items: "),
-                map_parser(take_until(LE), _sb(", ", pn)),
-                tag(LE),
-            ),
-            delimited(
-                tag("  Operation: new = old "),
+fn get_parser<'a>() -> impl FnMut(
+    &'a str,
+) -> IResult<
+    &'a str,
+    Vec<(isize, Vec<isize>, (&'a str, isize), isize, isize, isize)>,
+> {
+    sb(
+        lle,
+        tpl((
+            dlt(t!("Monkey "), pn, pair(t!(":"), le)),
+            dlt(t!("  Starting items: "), sb(t!(", "), pn), le),
+            dlt(
+                t!("  Operation: new = old "),
                 pair(
-                    alt((tag("*"), tag("+"))),
-                    preceded(
-                        tag(" "),
-                        alt((map(tag("old"), |_| -1), map_parser(take_until(LE), pn))),
-                    ),
+                    alt((t!("*"), t!("+"))),
+                    preceded(t!(" "), alt((map(t!("old"), |_| -1), pn))),
                 ),
-                tag(LE),
+                le,
             ),
-            delimited(
-                tag("  Test: divisible by "),
-                map_parser(take_until(LE), pn),
-                tag(LE),
-            ),
-            delimited(
-                tag("    If true: throw to monkey "),
-                map_parser(take_until(LE), pn),
-                tag(LE),
-            ),
-            preceded(
-                tag("    If false: throw to monkey "),
-                map_parser(take_while(|_| true), pn),
-            ),
+            dlt(t!("  Test: divisible by "), pn, le),
+            dlt(t!("    If true: throw to monkey "), pn, le),
+            preceded(t!("    If false: throw to monkey "), pn),
         )),
-    );
+    )
+}
+
+fn one() {
+    let p = get_parser();
     let mut s: Vec<(isize, Vec<isize>, (&str, isize), isize, isize, isize)> = pi!(p);
     let mut mi = vec![0; s.len()];
     for _ in 0..20 {
@@ -70,27 +57,7 @@ fn one() {
 }
 
 fn two() {
-    let p = _sb(
-        LLE,
-        tpl((
-            dlt(t!("Monkey "), mp(take_until(":"), pn), t!(":" @)),
-            pcd(t!("  Starting items: "), pu(LE, _sb(", ", pn))),
-            dlt(
-                t!("  Operation: new = old "),
-                pair(
-                    alt((t!("*"), t!("+"))),
-                    pcd(
-                        t!(" "),
-                        alt((map(t!("old"), |_| -1), mp(take_until(LE), pn))),
-                    ),
-                ),
-                t!(),
-            ),
-            pcd(tag("  Test: divisible by "), pu(LE, pn)),
-            pcd(tag("    If true: throw to monkey "), pu(LE, pn)),
-            pcd(tag("    If false: throw to monkey "), pn),
-        )),
-    );
+    let p = get_parser();
     let mut s: Vec<(isize, Vec<isize>, (&str, isize), isize, isize, isize)> = pi!(p);
     let mut mi = vec![0; s.len()];
     let sm = s.iter().map(|s| s.3).p();

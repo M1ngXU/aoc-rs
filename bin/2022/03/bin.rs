@@ -1,8 +1,8 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = _sb(
-        LE,
+    let p = sb(
+        le,
         map(ch, |c| -> (_, _) {
             c.chunks(c.len() / 2)
                 .map(|c| c.iter().copied().collect::<HashSet<_>>())
@@ -22,7 +22,7 @@ fn one() {
 }
 
 fn two() {
-    let p = _sb(LE, ch);
+    let p = sb(le, ch);
     let s = pi!(p);
     s.into_iter()
         .map(|v| v.into_iter().collect::<HashSet<_>>())

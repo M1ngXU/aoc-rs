@@ -4,7 +4,7 @@ use aoc_rs::prelude::*;
 
 fn one() {
     let p = sb(
-        "\n",
+        le,
         spair(
             spair(
                 pcd(t!("Sensor at x="), mp(tu(","), pn)),
@@ -12,7 +12,7 @@ fn one() {
                 mp(tu(":"), pn),
             ),
             t!(": closest beacon is at x="),
-            spair(mp(tu(","), pn), t!(", y="), pn),
+            spair(pn, t!(", y="), pn),
         ),
     );
     let s = pi!(p);
@@ -43,7 +43,7 @@ fn one() {
 
 fn two() {
     let p = sb(
-        "\n",
+        le,
         spair(
             spair(
                 pcd(t!("Sensor at x="), mp(tu(","), pn)),
