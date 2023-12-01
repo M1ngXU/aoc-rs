@@ -14,7 +14,7 @@ mod prelude {
     };
     pub use nom::*;
 }
-use std::{fs::File, path::Path};
+use std::{fs::File, io::Write, path::Path};
 
 use itertools::Itertools;
 use nom::error::{Error, ErrorKind};
@@ -33,19 +33,33 @@ pub fn download_input(dir: &Path) {
     if dir.join("input.txt").exists() {
         return;
     }
-    let mut f = File::create(dir.join("input.txt")).unwrap();
     let base = format!(
         "https://adventofcode.com/{}/day/{}",
         dir.parent().unwrap().file_name().unwrap().to_string_lossy(),
-        dir.file_name().unwrap().to_string_lossy(),
+        dir.file_name()
+            .unwrap()
+            .to_string_lossy()
+            .trim_start_matches('0'),
     );
-    let mut res = reqwest::blocking::Client::new()
+    let res = reqwest::blocking::Client::new()
         .get(&format!("{}/input", base))
         .header("Cookie", include_str!("../cookie.txt"))
         .send()
         .unwrap();
-    assert!(res.status().is_success());
-    res.copy_to(&mut f).unwrap();
+    assert!(
+        res.status().is_success(),
+        "Error: {} ({base})",
+        res.text().unwrap()
+    );
+    File::create(dir.join("input.txt"))
+        .unwrap()
+        .write_all(
+            res.text()
+                .expect("Failed to read `input`.")
+                .trim()
+                .as_bytes(),
+        )
+        .expect("Failed to save `input.txt`.");
 
     let res = reqwest::blocking::get(base).unwrap();
     assert!(res.status().is_success());
@@ -74,14 +88,14 @@ pub fn download_input(dir: &Path) {
 #[macro_export]
 /// parses `input.txt` using the parsers, then unwraps. leaks the input string
 macro_rules! pi {
-	($($t:tt)*) => {{
+	($example:literal: $($t:tt)*) => {{
 		// no need to make $($t)* mutable for the caller
 		let mut p = $($t)*;
         let current = std::path::PathBuf::from(file!());
         let dir = current.parent().unwrap();
         download_input(dir);
         let s = Box::leak(if cfg!(any(feature = "dex", feature = "ex")) {
-				std::fs::read_to_string(dir.join("example.txt")).unwrap()
+				std::fs::read_to_string(dir.join($example)).unwrap()
 		} else {
 				std::fs::read_to_string(dir.join("input.txt")).unwrap()
 		}.into_boxed_str());
@@ -95,6 +109,9 @@ macro_rules! pi {
 			}
 		}
 	}};
+    ($($t:tt)*) => {
+        pi!("example.txt": $($t)*)
+    }
 }
 pub use pi;
 
@@ -177,6 +194,34 @@ pub fn sb<'a, O, U>(
     f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
 ) -> impl FnMut(I<'a>) -> IResult<I<'a>, Vec<O>> {
     separated_list0(p, f)
+}
+/// Split by line ending: Vec<&str>, without trailing del
+pub fn sble<'a, O>(
+    f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
+) -> impl FnMut(I<'a>) -> IResult<I<'a>, Vec<O>> {
+    separated_list0(
+        le,
+        map_parser(
+            alt((take_until("\r\n"), take_until("\n"), take_while(|_| true))),
+            f,
+        ),
+    )
+}
+/// Split by double line endings: Vec<&str>, without trailing del
+pub fn sblele<'a, O>(
+    f: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
+) -> impl FnMut(I<'a>) -> IResult<I<'a>, Vec<O>> {
+    separated_list0(
+        pair(le, le),
+        map_parser(
+            alt((
+                take_until("\r\n\r\n"),
+                take_until("\n\n"),
+                take_while(|_| true),
+            )),
+            f,
+        ),
+    )
 }
 
 /// Parse number: isize
