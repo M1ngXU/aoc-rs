@@ -1,4 +1,9 @@
-use std::iter::{Product, Sum};
+use std::{
+    fmt::Debug,
+    iter::{Product, Sum},
+};
+
+use itertools::Itertools;
 
 pub trait Arithmetic<T> {
     /// equivalent to `.sum()` (but no inference issues)
@@ -36,6 +41,16 @@ impl<T: Sum + Product + Ord, I: Iterator<Item = T>> Arithmetic<T> for I {
     }
     fn l(self) -> T {
         self.last().unwrap()
+    }
+}
+
+pub trait Itertools2<T> {
+    fn cfsa<const N: usize>(self) -> [T; N];
+}
+impl<T: Debug, I: Iterator<Item = T>> Itertools2<T> for I {
+    /// Collect to a fixed sized array `[T; N]`, equivalent to `.collect_vec().try_into().unwrap()`
+    fn cfsa<const N: usize>(self) -> [T; N] {
+        self.collect_vec().try_into().unwrap()
     }
 }
 

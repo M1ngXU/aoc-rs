@@ -12,11 +12,9 @@ fn two() {
     let r = [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     ];
+    let rp = fsa::<9>().zp(r).map(|(n, s)| format!("{s}{}{s}", n + 1));
     let p = sble(mp(
-        rpl(
-            r.map(|n| r!(n)),
-            fsa::<9>().zp(r).map(|(n, s)| format!("{s}{}{s}", n + 1)),
-        ),
+        rpl(r.map(|n| r!(n)), rp.iter().map(|s| s.as_str()).cfsa()),
         pds,
     ));
     let s = pi!("example2.txt": p);

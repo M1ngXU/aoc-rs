@@ -71,8 +71,8 @@ impl<const N: usize, T: Sum + Product + Ord + Copy> ArithmeticV<T> for &[T; N] {
 /// A fixed size array of `N` elements initialized with `0..N`
 pub fn fsa<const N: usize>() -> [usize; N] {
     let mut r = [0; N];
-    for i in 0..N {
-        r[i] = i;
+    for (i, r) in r.iter_mut().enumerate() {
+        *r = i;
     }
     r
 }

@@ -42,7 +42,7 @@ pub fn download_input(dir: &Path) {
             .trim_start_matches('0'),
     );
     let res = reqwest::blocking::Client::new()
-        .get(&format!("{}/input", base))
+        .get(format!("{}/input", base))
         .header("Cookie", include_str!("../cookie.txt"))
         .send()
         .unwrap();
@@ -138,17 +138,14 @@ type I<'a> = &'a str;
 /// For each `find` in `finds`, replace it with the corresponding `replace`
 ///
 /// leaks the returned string (unowned)
-pub fn rpl<'a, const N: usize, R>(
+pub fn rpl<'a, const N: usize, R: Replacer + Copy>(
     finds: [Regex; N],
     replaces: [R; N],
-) -> impl FnMut(I<'a>) -> IResult<I<'a>, I<'a>>
-where
-    for<'r> &'r R: Replacer,
-{
+) -> impl FnMut(I<'a>) -> IResult<I<'a>, I<'a>> {
     move |i: I<'a>| {
         let mut out = i.to_string();
         for (f, r) in finds.iter().zip(replaces.iter()) {
-            out = f.replace_all(&out, r).to_string();
+            out = f.replace_all(&out, *r).to_string();
         }
         Ok(("", leak(&out)))
     }
@@ -158,11 +155,10 @@ where
 ///
 /// If you don't want to skip non-digit characters, just use:
 /// `chp(pn)`
-pub fn pds<'a>(i: I<'a>) -> IResult<I<'a>, Vec<isize>> {
+pub fn pds(i: I) -> IResult<I, Vec<isize>> {
     Ok((
         "",
         i.chars()
-            .into_iter()
             .filter(|c| c.is_numeric())
             .map(|c| c.to_digit(10).unwrap() as isize)
             .collect(),
@@ -170,7 +166,7 @@ pub fn pds<'a>(i: I<'a>) -> IResult<I<'a>, Vec<isize>> {
 }
 
 /// Parse all numbers in the input, skipping non-numeric characters
-pub fn pns<'a>(mut i: I<'a>) -> IResult<I<'a>, Vec<isize>> {
+pub fn pns(mut i: I) -> IResult<I, Vec<isize>> {
     let mut out = vec![];
     while !i.is_empty() {
         match pn(i) {
@@ -187,7 +183,7 @@ pub fn pns<'a>(mut i: I<'a>) -> IResult<I<'a>, Vec<isize>> {
 }
 
 /// Parse all floats in the input
-pub fn pfs<'a>(mut i: I<'a>) -> IResult<I<'a>, Vec<f64>> {
+pub fn pfs(mut i: I) -> IResult<I, Vec<f64>> {
     let mut out = vec![];
     while !i.is_empty() {
         match pf(i) {
