@@ -1,7 +1,6 @@
 #![feature(iter_map_windows)]
 
 use aoc_rs::prelude::*;
-use nalgebra::{ArrayStorage, Vector3};
 
 fn one() {
     let p = sble(id);
