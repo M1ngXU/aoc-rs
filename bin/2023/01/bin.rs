@@ -1,32 +1,26 @@
+// See history for another version with regex
+
 use aoc_rs::prelude::*;
 
-const DIGITS: [&str; 19] = [
-    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "0", "1", "2", "3",
-    "4", "5", "6", "7", "8", "9",
-];
-
-fn process(rf: &Regex, rl: &Regex, s: &str) -> usize {
-    let [f, l] = [rf, rl].map(|r| r.captures(s).unwrap().get(1).unwrap().as_str());
-    let [first, last] = [f, l].map(|s| (DIGITS.into_iter().position(|d| d == s).unwrap() + 1) % 10);
-    first * 10 + last
-}
-
-fn get_regex(d: &[&str]) -> (Regex, Regex) {
-    let first = r!(&format!(".*?({})", d.join("|")));
-    let last = r!(&format!(".*({})", d.join("|")));
-    (first, last)
-}
-
 fn one() {
-    let (reg_first, reg_last) = get_regex(&DIGITS[9..]);
-    let s = pi!("example1.txt": sble(map(id, |s| process(&reg_first, &reg_last, s))));
-    s.into_iter().s().save()
+    let p = sble(pds);
+    let s = pi!("example1.txt": p);
+    s.into_iter().map(|r| 10 * r.f() + r.l()).s().save()
 }
 
 fn two() {
-    let (reg_first, reg_last) = get_regex(&DIGITS);
-    let s = pi!("example2.txt": sble(map(id, |s| process(&reg_first, &reg_last, s))));
-    s.into_iter().s().save()
+    let r = [
+        "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    ];
+    let p = sble(mp(
+        rpl(
+            r.map(|n| r!(n)),
+            fsa::<9>().zp(r).map(|(n, s)| format!("{s}{}{s}", n + 1)),
+        ),
+        pds,
+    ));
+    let s = pi!("example2.txt": p);
+    s.into_iter().map(|r| 10 * r.f() + r.l()).s().save()
 }
 
 fn main() {

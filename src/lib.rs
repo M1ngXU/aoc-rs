@@ -1,7 +1,10 @@
-#![feature(iter_repeat_n, iter_map_windows)]
+#![feature(
+    iter_repeat_n,
+    iter_map_windows,
+    iter_from_coroutine
+)]
 #![cfg_attr(bootstrap, feature(generators))]
 #![cfg_attr(not(bootstrap), feature(coroutines))]
-#![feature(iter_from_coroutine)]
 
 pub mod prelude {
     pub use crate::itertools2::*;

@@ -15,6 +15,7 @@ rayon = "1.8.0"
 regex = "1.10.2"
 reqwest = { version = "0.11.22", features = ["blocking"] }
 range-utils = { git = "https://github.com/M1ngXU/range-utils.git" }
+nalgebra = "0.32.3"
 
 [features]
 ex = []

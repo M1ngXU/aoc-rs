@@ -9,6 +9,10 @@ pub trait Arithmetic<T> {
     fn mx(self) -> T;
     /// equivalent to `.min().unwrap()`
     fn mn(self) -> T;
+    /// equivalent to `.first().unwrap()`
+    fn f(self) -> T;
+    /// equivalent to `.last().unwrap()`
+    fn l(self) -> T;
 }
 impl<T: Sum + Product + Ord, I: Iterator<Item = T>> Arithmetic<T> for I {
     fn s(self) -> T {
@@ -25,6 +29,13 @@ impl<T: Sum + Product + Ord, I: Iterator<Item = T>> Arithmetic<T> for I {
 
     fn mn(self) -> T {
         self.min().unwrap()
+    }
+
+    fn f(mut self) -> T {
+        self.next().unwrap()
+    }
+    fn l(self) -> T {
+        self.last().unwrap()
     }
 }
 

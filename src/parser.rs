@@ -85,6 +85,12 @@ pub fn download_input(dir: &Path) {
 
     std::fs::write(dir.join("example.txt"), example).unwrap();
 }
+
+/// Leak the string ...
+pub fn leak(s: &str) -> &'static str {
+    s.to_string().leak()
+}
+
 #[macro_export]
 /// parses `input.txt` using the parsers, then unwraps. leaks the input string
 macro_rules! pi {
@@ -94,11 +100,11 @@ macro_rules! pi {
         let current = std::path::PathBuf::from(file!());
         let dir = current.parent().unwrap();
         download_input(dir);
-        let s = Box::leak(if cfg!(any(feature = "dex", feature = "ex")) {
+        let s = leak(&if cfg!(any(feature = "dex", feature = "ex")) {
 				std::fs::read_to_string(dir.join($example)).unwrap()
 		} else {
 				std::fs::read_to_string(dir.join("input.txt")).unwrap()
-		}.into_boxed_str());
+		});
 		cfg_if::cfg_if! {
 			if #[cfg(feature = "dex")] {
 				dbg!(p(s).p())
@@ -129,6 +135,74 @@ impl<'a, O: std::fmt::Debug> ParseAndUnwrap<O> for IResult<I<'a>, O> {
 
 type I<'a> = &'a str;
 
+/// For each `find` in `finds`, replace it with the corresponding `replace`
+///
+/// leaks the returned string (unowned)
+pub fn rpl<'a, const N: usize, R>(
+    finds: [Regex; N],
+    replaces: [R; N],
+) -> impl FnMut(I<'a>) -> IResult<I<'a>, I<'a>>
+where
+    for<'r> &'r R: Replacer,
+{
+    move |i: I<'a>| {
+        let mut out = i.to_string();
+        for (f, r) in finds.iter().zip(replaces.iter()) {
+            out = f.replace_all(&out, r).to_string();
+        }
+        Ok(("", leak(&out)))
+    }
+}
+
+/// Parse all digits in the input, skipping non-digit characters
+///
+/// If you don't want to skip non-digit characters, just use:
+/// `chp(pn)`
+pub fn pds<'a>(i: I<'a>) -> IResult<I<'a>, Vec<isize>> {
+    Ok((
+        "",
+        i.chars()
+            .into_iter()
+            .filter(|c| c.is_numeric())
+            .map(|c| c.to_digit(10).unwrap() as isize)
+            .collect(),
+    ))
+}
+
+/// Parse all numbers in the input, skipping non-numeric characters
+pub fn pns<'a>(mut i: I<'a>) -> IResult<I<'a>, Vec<isize>> {
+    let mut out = vec![];
+    while !i.is_empty() {
+        match pn(i) {
+            Ok((i2, n)) => {
+                i = i2;
+                out.push(n);
+            }
+            _ => {
+                i = &i[1..];
+            }
+        }
+    }
+    Ok((i, out))
+}
+
+/// Parse all floats in the input
+pub fn pfs<'a>(mut i: I<'a>) -> IResult<I<'a>, Vec<f64>> {
+    let mut out = vec![];
+    while !i.is_empty() {
+        match pf(i) {
+            Ok((i2, n)) => {
+                i = i2;
+                out.push(n);
+            }
+            _ => {
+                i = &i[1..];
+            }
+        }
+    }
+    Ok((i, out))
+}
+
 /// Consumes the whole string and maps the it with `f`
 pub fn to_p<'a, O>(mut f: impl FnMut(I<'a>) -> O) -> impl FnMut(I<'a>) -> IResult<I<'a>, O> {
     move |i: I| Ok(("", f(i)))
@@ -157,6 +231,7 @@ macro_rules! t {
 		pair(t!($t), t!($($r)*))
 	};
 }
+use regex::{Regex, Replacer};
 pub use t;
 
 pub fn id(x: I) -> IResult<I, I> {
@@ -222,6 +297,11 @@ pub fn sblele<'a, O>(
             f,
         ),
     )
+}
+
+/// Parse digit (`0..=9`): isize
+pub fn pd(i: I) -> IResult<I, isize> {
+    mp(take(1_usize), i128)(i).map(|(i, n)| (i, n as isize))
 }
 
 /// Parse number: isize
@@ -297,6 +377,22 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_all_numbers() {
+        assert_eq!(("", vec![1, -2, 3]), pns("1, -2, 3").unwrap());
+        assert_eq!(("", vec![1, -22, 3]), pns("1, -22, - 3").unwrap());
+        assert_eq!(("", vec![1, -2, 3]), pns("1-2+3").unwrap());
+        assert_eq!(("", vec![1, -2, 3]), pns("1f-2da+b-f3").unwrap());
+    }
+
+    #[test]
+    fn test_parse_all_digits() {
+        assert_eq!(("", vec![1, 2, 3]), pds("1, -2, 3").unwrap());
+        assert_eq!(("", vec![1, 2, 2, 3]), pds("1, -22, - 3").unwrap());
+        assert_eq!(("", vec![1, 2, 3]), pds("1-2+3").unwrap());
+        assert_eq!(("", vec![1, 2, 3]), pds("1f-2da+b-f3").unwrap());
+    }
+
+    #[test]
     fn parse_number() {
         assert_eq!(pn("123"), Ok(("", 123)));
         assert_eq!(pn("+123"), Ok(("", 123)));
@@ -305,6 +401,13 @@ mod tests {
         assert_eq!(pn("+0"), Ok(("", 0)));
         assert_eq!(pn("-0"), Ok(("", 0)));
         assert_eq!(pn("000"), Ok(("", 0)));
+    }
+
+    #[test]
+    fn parse_digit() {
+        assert_eq!(pd("123"), Ok(("23", 1)));
+        assert_eq!(pd("0"), Ok(("", 0)));
+        assert_eq!(pd("0.3"), Ok((".3", 0)));
     }
 
     #[test]
