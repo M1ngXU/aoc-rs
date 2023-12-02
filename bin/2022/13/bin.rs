@@ -4,23 +4,14 @@ use std::cmp::Ordering;
 
 use aoc_rs::prelude::*;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-enum Pkg {
-    N(isize),
-    P(Vec<Pkg>),
-}
-
-fn p2<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Pkg> {
-    alt((
-        map(pn, Pkg::N),
-        map(dlt(t!("["), sb(t!(","), |i| p2()(i)), t!("]")), Pkg::P),
-    ))
-}
-
-fn cmp(a: &Pkg, b: &Pkg) -> Ordering {
+fn cmp(a: &Value, b: &Value) -> Ordering {
     match (a, b) {
-        (Pkg::N(a), Pkg::N(b)) => a.cmp(b),
-        (Pkg::P(a), Pkg::P(b)) => {
+        (Value::Number(a), Value::Number(b)) => a
+            .as_f64()
+            .unwrap()
+            .partial_cmp(&b.as_f64().unwrap())
+            .unwrap(),
+        (Value::Array(a), Value::Array(b)) => {
             for (a, b) in a.iter().zip(b) {
                 let c = cmp(a, b);
                 if c.is_ne() {
@@ -29,13 +20,14 @@ fn cmp(a: &Pkg, b: &Pkg) -> Ordering {
             }
             a.len().cmp(&b.len())
         }
-        (Pkg::P(_), Pkg::N(b)) => cmp(a, &Pkg::P(vec![Pkg::N(*b)])),
-        (Pkg::N(a), Pkg::P(_)) => cmp(&Pkg::P(vec![Pkg::N(*a)]), b),
+        (Value::Array(_), Value::Number(b)) => cmp(a, &json!([b.clone()])),
+        (Value::Number(a), Value::Array(_)) => cmp(&json!([a.clone()]), b),
+        _ => todo!(),
     }
 }
 
 fn one() {
-    let p = _sb("\n\n", pair(pu("\n", p2()), p2()));
+    let p = _sb("\n\n", pair(pu("\n", pjs::<Value>), pjs::<Value>));
     let s = pi!(p);
     s.into_iter()
         .enumerate()
@@ -46,10 +38,10 @@ fn one() {
 }
 
 fn two() {
-    let p = _sb("\n\n", pair(pu("\n", p2()), p2()));
+    let p = _sb("\n\n", pair(pu("\n", pjs), pjs));
     let s = pi!(p);
-    let d1 = Pkg::P(vec![Pkg::P(vec![Pkg::N(2)])]);
-    let d2 = Pkg::P(vec![Pkg::P(vec![Pkg::N(6)])]);
+    let d1 = json![[[2]]];
+    let d2 = json![[[6]]];
     let s = s
         .into_iter()
         .flat_map(|(a, b)| [a, b])

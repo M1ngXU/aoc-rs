@@ -16,6 +16,13 @@ pub mod prelude {
     // who uses `bytes` submodule anyway
     #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
     pub use regex::*;
+    pub use serde::{Deserialize, Serialize};
+    pub use serde_json::de::*;
+    pub use serde_json::ser::*;
+    pub use serde_json::Map as JMap;
+    // who uses `Map` anyway
+    #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
+    pub use serde_json::*;
 
     pub use std::collections::*;
     pub use std::convert::{identity, AsMut, AsRef, Infallible};

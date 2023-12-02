@@ -182,6 +182,14 @@ pub fn pns(mut i: I) -> IResult<I, Vec<isize>> {
     Ok((i, out))
 }
 
+pub fn pjs<'a, T: Deserialize<'a>>(i: I<'a>) -> IResult<I<'a>, T> {
+    from_str(i).map(|o| ("", o)).map_err(|e| {
+        let _e = e;
+        // println!("{_e}");
+        Err::Error(nom::error::Error::new(i, ErrorKind::Not))
+    })
+}
+
 /// Parse all floats in the input
 pub fn pfs(mut i: I) -> IResult<I, Vec<f64>> {
     let mut out = vec![];
@@ -228,6 +236,8 @@ macro_rules! t {
 	};
 }
 use regex::{Regex, Replacer};
+use serde::Deserialize;
+use serde_json::from_str;
 pub use t;
 
 pub fn id(x: I) -> IResult<I, I> {
