@@ -54,6 +54,38 @@ impl<T: Debug, I: Iterator<Item = T>> Itertools2<T> for I {
     }
 }
 
+/// All 4 adjacent cells of (x, y) in a 2D grid (without diagonals)
+pub fn adj(x: usize, y: usize, max_x: usize, max_y: usize) -> impl Iterator<Item = (usize, usize)> {
+    (-1..=1)
+        .cartesian_product(-1..=1)
+        .filter(|(x, y)| x == &0 || y == &0)
+        .filter(|(x, y)| x != &0 && y != &0)
+        .filter(move |(dx, dy)| {
+            let x = x as isize + dx;
+            let y = y as isize + dy;
+            x >= 0 && x < max_x as isize && y >= 0 && y < max_y as isize
+        })
+        .map(move |(dx, dy)| ((x as isize + dx) as usize, (y as isize + dy) as usize))
+}
+
+/// All 8 adjacent cells of (x, y) in a 2D grid (with diagonal ones)
+pub fn adjd(
+    x: usize,
+    y: usize,
+    max_x: usize,
+    max_y: usize,
+) -> impl Iterator<Item = (usize, usize)> {
+    (-1..=1)
+        .cartesian_product(-1..=1)
+        .filter(|(x, y)| x != &0 || y != &0)
+        .filter(move |(dx, dy)| {
+            let x = x as isize + dx;
+            let y = y as isize + dy;
+            x >= 0 && x < max_x as isize && y >= 0 && y < max_y as isize
+        })
+        .map(move |(dx, dy)| ((x as isize + dx) as usize, (y as isize + dy) as usize))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

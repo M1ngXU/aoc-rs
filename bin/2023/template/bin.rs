@@ -3,7 +3,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = todo!();
+    let p = sble(id);
     let s = pi!(p);
 }
 
