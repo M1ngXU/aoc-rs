@@ -7,36 +7,7 @@ const INPUT: &str = include_str!("example.txt");
 fn one() {
     INPUT
         .lines()
-        .map(|s| {
-            s.char_indices()
-                .fold(
-                    (vec![], false),
-                    |(blocks, num): (Vec<Vec<(usize, char)>>, bool), n| {
-                        if n.1.is_numeric() && num {
-                            (
-                                blocks
-                                    .iter()
-                                    .enumerate()
-                                    .map(|(i, b)| {
-                                        if i == blocks.len() - 1 {
-                                            b.iter().copied().chain(once(n)).collect_vec()
-                                        } else {
-                                            b.clone()
-                                        }
-                                    })
-                                    .collect_vec(),
-                                n.1.is_numeric(),
-                            )
-                        } else {
-                            (
-                                blocks.into_iter().chain(once(vec![n])).collect_vec(),
-                                n.1.is_numeric(),
-                            )
-                        }
-                    },
-                )
-                .0
-        })
+        .map(|s| s.char_indices().chunked_by(|(_, c)| c.is_numeric()))
         .enumerate()
         .map(|(y, lines)| {
             lines

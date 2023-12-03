@@ -17,6 +17,7 @@ mod prelude {
 use std::{fs::File, io::Write, path::Path};
 
 use itertools::Itertools;
+use nalgebra::{Dyn, Matrix, VecStorage};
 use nom::error::{Error, ErrorKind};
 pub use prelude::*;
 
@@ -345,6 +346,19 @@ fn chars_as_str(i: I) -> impl Iterator<Item = I> {
     indices.into_iter().map(|(s, l)| &i[s..s + l])
 }
 
+/// Parses each character as a 2d grid (matrix)
+pub fn grd(i: I) -> IResult<I, Matrix<char, Dyn, Dyn, VecStorage<char, Dyn, Dyn>>> {
+    let grid = sble(ch)(i)?.1;
+    Ok((
+        "",
+        Matrix::from_data(VecStorage::new(
+            Dyn(grid.len()),
+            Dyn(grid[0].len()),
+            grid.into_iter().flatten().collect(),
+        )),
+    ))
+}
+
 /// Splits the input into a str array each of length 1 and applies a parser onto each char (as string)
 pub fn chp<'a, O>(
     mut p: impl FnMut(I<'a>) -> IResult<I<'a>, O>,
@@ -440,6 +454,17 @@ mod tests {
         assert_eq!(
             dlt2("(", ")")("(123)456(789)012"),
             Ok(("456(789)012", "123"))
+        );
+    }
+
+    #[test]
+    fn test_grid() {
+        assert_eq!(
+            grd("12\n34"),
+            Ok((
+                "",
+                Matrix::from_data(VecStorage::new(Dyn(2), Dyn(2), vec!['1', '2', '3', '4']))
+            ))
         );
     }
 }

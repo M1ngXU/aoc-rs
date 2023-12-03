@@ -45,12 +45,20 @@ impl<T: Sum + Product + Ord, I: Iterator<Item = T>> Arithmetic<T> for I {
 }
 
 pub trait Itertools2<T> {
+    /// Collect to a fixed sized array `[T; N]`, equivalent to `.collect_vec().try_into().unwrap()`
     fn cfsa<const N: usize>(self) -> [T; N];
+    /// Chunk consecutive elements which have the same output of `f` into a `Vec`
+    fn chunked_by(self, f: impl Fn(&T) -> bool) -> Vec<Vec<T>>;
 }
 impl<T: Debug, I: Iterator<Item = T>> Itertools2<T> for I {
-    /// Collect to a fixed sized array `[T; N]`, equivalent to `.collect_vec().try_into().unwrap()`
     fn cfsa<const N: usize>(self) -> [T; N] {
         self.collect_vec().try_into().unwrap()
+    }
+    fn chunked_by(self, f: impl FnMut(&T) -> bool) -> Vec<Vec<T>> {
+        self.group_by(f)
+            .into_iter()
+            .map(|(_, g)| g.collect_vec())
+            .collect_vec()
     }
 }
 
