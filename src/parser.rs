@@ -393,9 +393,258 @@ pub fn chf<'a, O>(mut f: impl FnMut(I<'a>) -> O) -> impl FnMut(I<'a>) -> IResult
     }
 }
 
+/// Take all
+pub fn ta(i: I) -> IResult<I, I> {
+    Ok(("", i))
+}
+
+#[macro_export]
+macro_rules! parser {
+    () => {
+        take(0_usize)
+    };
+    (@ $($t:tt)*) => {
+        $($t)*
+    };
+    (($($t:tt)*)) => {
+        parser!($($t)*)
+    };
+    ($single_token:literal) => {
+        t!($single_token)
+    };
+    (LE) => {
+        alt((t!("\n"), t!("\r\n")))
+    };
+    (LELE) => {
+        alt((t!("\n\n"), t!("\r\n\r\n")))
+    };
+    (LELELE) => {
+        alt((t!("\n\n\n"), t!("\r\n\r\n\r\n")))
+    };
+    ({$($first:tt)*} {$($second:tt)*} $($rest:tt)*) => {
+        parser!({@ alt((parser!($($first)*), parser!($($second)*)))} $($rest)*)
+    };
+    ({$($first:tt)*} $($rest:tt)*) => {
+        parser!(($($first)*) $($rest)*)
+    };
+    ($single_token:tt) => {
+        $single_token
+    };
+    ((| $($content:tt)*)[LE]*) => {
+        sb(parser!(LE), mp(alt((tu("\r\n"), tu("\n"), ta)), parser!($($content)*)))
+    };
+    ((| $($content:tt)*)[LELE]*) => {
+        sb(parser!(LELE), mp(alt((tu("\r\n\r\n"), tu("\n\n"), ta)), parser!($($content)*)))
+    };
+    ((| $($content:tt)*)[LELELE]*) => {
+        sb(parser!(LELELE), mp(alt((tu("\r\n\r\n\r\n"), tu("\n\n\n"), ta)), parser!($($content)*)))
+    };
+    ((| $($content:tt)*)[$($delimiter:tt)?]*) => {
+        sb(parser!($($delimiter:tt)?), mp(alt(($(tu($delimiter),)? ta,)), parser!($($content)*)))
+    };
+    (($($content:tt)*)[$($delimiter:tt)*]*) => {
+        sb(parser!($($delimiter)*), parser!($($content)*))
+    };
+    (($($trash:tt)*) << ($($useful:tt)*)) => {
+        pcd(parser!($($trash)*), parser!($($useful)*))
+    };
+    ($trash:tt << ($($useful:tt)*)) => {
+        parser!(($trash) << ($($useful)*))
+    };
+    (($($trash:tt)*) <<| $($useful:tt)*) => {
+        parser!(($($trash)*) << ($($useful)*))
+    };
+    ($trash:tt <<| $($useful:tt)*) => {
+        parser!(($trash) << ($($useful)*))
+    };
+    (($($trash:tt)*) << $useful:tt $($rest:tt)*) => {
+        pair(parser!(($($trash)*) << ($useful)), parser!($($rest)*))
+    };
+    ($trash:tt << $useful:tt $($rest:tt)*) => {
+        parser!(($trash) << $useful $($rest)*)
+    };
+    (($($useful:tt)*) >> ($($trash:tt)*)) => {
+        tmd(parser!($($useful)*), parser!($($trash)*))
+    };
+    ($useful:tt >> ($($trash:tt)*)) => {
+        parser!(($useful) >> ($($trash)*))
+    };
+    (($($useful:tt)*) >>| $($trash:tt)*) => {
+        parser!(($($useful)*) >> ($($trash)*))
+    };
+    ($useful:tt >>| $($trash:tt)*) => {
+        parser!(($useful) >> ($($trash)*))
+    };
+    (($($useful:tt)*) >> $trash:tt $($rest:tt)*) => {
+        pair(parser!(($($useful)*) >> ($trash)), parser!($($rest)*))
+    };
+    ($useful:tt >> $trash:tt $($rest:tt)*) => {
+        parser!(($useful) >> $trash $($rest)*)
+    };
+    (($($first:tt)*) > ($($second:tt)*)) => {
+        mp(parser!($($first)*), parser!($($second)*))
+    };
+    ($first:tt > ($($second:tt)*)) => {
+        parser!(($first) > ($($second)*))
+    };
+    (($($first:tt)*) >| $($second:tt)*) => {
+        parser!(($($first)*) > ($($second)*))
+    };
+    ($first:tt >| $($second:tt)*) => {
+        parser!(($($first)*) > ($($second)*))
+    };
+    (($($first:tt)*) > $second:tt $($rest:tt)*) => {
+        pair(parser!(($($first)*) > ($second)), parser!($($rest)*))
+    };
+    ($first:tt > $second:tt $($rest:tt)*) => {
+        parser!(($($first)*) > ($second) $($rest)*)
+    };
+    ($lit:literal $($rest:tt)*) => {
+        pair(t!($lit), parser!($($rest)*))
+    };
+    (($($content:tt)*)*) => {
+        many0::<_, _, Error<I>, _>(parser!($($content)*))
+    };
+    (($($content:tt)*)+) => {
+        many1::<_, _, Error<I>, _>(parser!($($content)*))
+    };
+    (($($t:tt)*) $($r:tt)*) => {
+        pair(parser!($($t)*), parser!($($r)*))
+    };
+    ($cur:tt $($t:tt)*) => {
+        pair(parser!($cur), parser!($($t)*))
+    };
+}
+pub use parser;
+// TODO map parser((one) > (two) [...]), alt((one) | (two) [...])
+
+#[cfg(windows)]
+mod consts {
+    pub const LE: &str = "\r\n";
+    pub const LELE: &str = "\r\n\r\n";
+    pub const LELELE: &str = "\r\n\r\n\r\n";
+}
+#[cfg(unix)]
+mod consts {
+    pub const LE: &str = "\n";
+    pub const LELE: &str = "\n\n";
+    pub const LELELE: &str = "\n\n\n";
+}
+pub use consts::*;
+
 #[cfg(test)]
 mod tests {
+    // #![feature(trace_macros)]
+    // trace_macros!(true);
+
     use super::*;
+
+    #[test]
+    fn test_macro00() {
+        let mut a = parser!((| id)[LE]*);
+        let b = a("abc\ndef");
+        assert_eq!(b, Ok(("", vec!["abc", "def"])));
+        let mut a = parser!((| id)[LELE]*);
+        let b = a("abc\r\n\r\ndef");
+        assert_eq!(b, Ok(("", vec!["abc", "def"])));
+        let mut a = parser!((| id)[LELELE]*);
+        let b = a("abc\n\n\ndef");
+        assert_eq!(b, Ok(("", vec!["abc", "def"])));
+    }
+
+    #[test]
+    fn test_macro01() {
+        let mut a = parser!((pn)[le]*);
+        let b = a("1\n2");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+        let mut a = parser!((@ take(1_usize))*);
+        let b = a("12");
+        assert_eq!(b, Ok(("", vec!["1", "2"])));
+    }
+
+    #[test]
+    fn test_macro02() {
+        let mut a = parser!(("n:" pn)[le]*);
+        let b = a("n:1\nn:2");
+        assert_eq!(b, Ok(("", vec![("n:", 1), ("n:", 2)])));
+        let mut a = parser!((@ pair(t!("n:"), pn))[le]*);
+        let b = a("n:1\nn:2");
+        assert_eq!(b, Ok(("", vec![("n:", 1), ("n:", 2)])));
+    }
+
+    #[test]
+    fn test_macro03() {
+        let mut a = parser!((("n:") << pn (ms1) <<| pn)[le]*);
+        let b = a("n:1 2\nn:2 3");
+        assert_eq!(b, Ok(("", vec![(1, 2), (2, 3)])));
+        let mut a = parser!(("n:" << pn ms1 <<| pn)[le]*);
+        let b = a("n:1 2\nn:2 3");
+        assert_eq!(b, Ok(("", vec![(1, 2), (2, 3)])));
+        let mut a = parser!(((pn) >> "n" (pn) >>| "f")[le]*);
+        let b = a("1n2f\n2n3f");
+        assert_eq!(b, Ok(("", vec![(1, 2), (2, 3)])));
+        let mut a = parser!((pn >> "n" pn >>| "f")[le]*);
+        let b = a("1n2f\n2n3f");
+        assert_eq!(b, Ok(("", vec![(1, 2), (2, 3)])));
+        let mut a = parser!(((pn) >>| "n")[le]*);
+        let b = a("1n\n2n");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+        let mut a = parser!((pn >>| "n")[le]*);
+        let b = a("1n\n2n");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+        let mut a = parser!(((pn) >> ("n"))[le]*);
+        let b = a("1n\n2n");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+        let mut a = parser!((pn >> ("n"))[le]*);
+        let b = a("1n\n2n");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+    }
+
+    #[test]
+    fn test_macro04() {
+        let mut a = parser!((("n:" ms0) <<| pn)[le]*);
+        let b = a("n:  1\nn:2");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+        let mut a = parser!((("n:" ms1) <<| pf)[le]*);
+        let b = a("n:  1.0\nn:2");
+        assert_eq!(b, Ok(("\nn:2", vec![1.0])));
+        let mut a = parser!((("n:" ms1) << (pf))[le]*);
+        let b = a("n:  1.0\nn:2");
+        assert_eq!(b, Ok(("\nn:2", vec![1.0])));
+    }
+
+    #[test]
+    fn test_macro05() {
+        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) >| pn)[le]*);
+        let b = a("n:  1\nn:2");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) > pn "t")[le]*);
+        let b = a("n:  1t\nn:2t");
+        assert_eq!(b, Ok(("", vec![(1, "t"), (2, "t")])));
+        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) >| @ id)[le]*);
+        let b = a("n:  1\nn:2");
+        assert_eq!(b, Ok(("", vec!["1", "2"])));
+        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) > (pn))[le]*);
+        let b = a("n:  1\nn:2");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+    }
+
+    #[test]
+    fn test_macro06() {
+        let mut a = parser!(ms1 pns);
+        let b = a("  1 3 55");
+        assert_eq!(b, Ok(("", ("  ", vec![1, 3, 55]))));
+    }
+
+    #[test]
+    fn test_macro07() {
+        // let mut a = parser!({"a" "c"}{"q" "z"});
+        let mut a = parser!({({"a" "c"}{"b" "e"}{"c" "q"})}{"q" "z"});
+        let b: Result<(&str, (&str, &str)), Err<nom::error::Error<_>>> = a("cq");
+        assert_eq!(b, Ok(("", ("c", "q"))));
+        let b = a("qz");
+        assert_eq!(b, Ok(("", ("q", "z"))));
+    }
 
     #[test]
     fn test_sb() {
