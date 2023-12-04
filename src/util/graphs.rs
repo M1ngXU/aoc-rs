@@ -22,6 +22,8 @@ macro_rules! primitive_from_isize {
 }
 primitive_from_isize!(usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64);
 
+// TODO: use grid
+
 /// Dijkstra's algorithm on a 2d grid with diagonal movement, each can have a different length
 pub fn dijkstra2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize, T: Clone>(
     grid: Vec<Vec<(C, T)>>,

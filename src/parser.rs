@@ -166,6 +166,13 @@ pub fn pds(i: I) -> IResult<I, Vec<isize>> {
     ))
 }
 
+pub fn ms0(i: I) -> IResult<I, I> {
+    multispace0(i)
+}
+pub fn ms1(i: I) -> IResult<I, I> {
+    multispace1(i)
+}
+
 /// Parse all numbers in the input, skipping non-numeric characters
 pub fn pns(mut i: I) -> IResult<I, Vec<isize>> {
     let mut out = vec![];
