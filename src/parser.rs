@@ -459,59 +459,32 @@ macro_rules! parser {
     (($($content:tt)*)[$($delimiter:tt)*]*) => {
         sb(parser!($($delimiter)*), parser!($($content)*))
     };
-    (($($trash:tt)*) << ($($useful:tt)*)) => {
-        pcd(parser!($($trash)*), parser!($($useful)*))
-    };
     ($trash:tt << ($($useful:tt)*)) => {
-        parser!(($trash) << ($($useful)*))
-    };
-    (($($trash:tt)*) <<| $($useful:tt)*) => {
-        parser!(($($trash)*) << ($($useful)*))
+        pcd(parser!($trash), parser!($($useful)*))
     };
     ($trash:tt <<| $($useful:tt)*) => {
-        parser!(($trash) << ($($useful)*))
-    };
-    (($($trash:tt)*) << $useful:tt $($rest:tt)*) => {
-        pair(parser!(($($trash)*) << ($useful)), parser!($($rest)*))
+        parser!($trash << ($($useful)*))
     };
     ($trash:tt << $useful:tt $($rest:tt)*) => {
-        parser!(($trash) << $useful $($rest)*)
-    };
-    (($($useful:tt)*) >> ($($trash:tt)*)) => {
-        tmd(parser!($($useful)*), parser!($($trash)*))
+        pair(parser!($trash << ($useful)), parser!($($rest)*))
     };
     ($useful:tt >> ($($trash:tt)*)) => {
-        parser!(($useful) >> ($($trash)*))
-    };
-    (($($useful:tt)*) >>| $($trash:tt)*) => {
-        parser!(($($useful)*) >> ($($trash)*))
+        tmd(parser!($useful), parser!($($trash)*))
     };
     ($useful:tt >>| $($trash:tt)*) => {
-        parser!(($useful) >> ($($trash)*))
-    };
-    (($($useful:tt)*) >> $trash:tt $($rest:tt)*) => {
-        pair(parser!(($($useful)*) >> ($trash)), parser!($($rest)*))
+        parser!($useful >> ($($trash)*))
     };
     ($useful:tt >> $trash:tt $($rest:tt)*) => {
-        parser!(($useful) >> $trash $($rest)*)
-    };
-    (($($first:tt)*) > ($($second:tt)*)) => {
-        mp(parser!($($first)*), parser!($($second)*))
+        pair(parser!($useful >> ($trash)), parser!($($rest)*))
     };
     ($first:tt > ($($second:tt)*)) => {
-        parser!(($first) > ($($second)*))
-    };
-    (($($first:tt)*) >| $($second:tt)*) => {
-        parser!(($($first)*) > ($($second)*))
+        mp(parser!($first), parser!($($second)*))
     };
     ($first:tt >| $($second:tt)*) => {
-        parser!(($($first)*) > ($($second)*))
-    };
-    (($($first:tt)*) > $second:tt $($rest:tt)*) => {
-        pair(parser!(($($first)*) > ($second)), parser!($($rest)*))
+        mp(parser!($first), parser!($($second)*))
     };
     ($first:tt > $second:tt $($rest:tt)*) => {
-        parser!(($($first)*) > ($second) $($rest)*)
+        pair(parser!($first > ($second)), parser!($($rest)*))
     };
     ($lit:literal $($rest:tt)*) => {
         pair(t!($lit), parser!($($rest)*))
@@ -530,7 +503,6 @@ macro_rules! parser {
     };
 }
 pub use parser;
-// TODO map parser((one) > (two) [...]), alt((one) | (two) [...])
 
 #[cfg(windows)]
 mod consts {
