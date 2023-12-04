@@ -353,9 +353,23 @@ fn chars_as_str(i: I) -> impl Iterator<Item = I> {
     indices.into_iter().map(|(s, l)| &i[s..s + l])
 }
 
+pub type Grid<T> = Matrix<T, Dyn, Dyn, VecStorage<T, Dyn, Dyn>>;
+
 /// Parses each character as a 2d grid (matrix)
-pub fn grd(i: I) -> IResult<I, Matrix<char, Dyn, Dyn, VecStorage<char, Dyn, Dyn>>> {
+pub fn grd(i: I) -> IResult<I, Grid<char>> {
     let grid = sble(ch)(i)?.1;
+    Ok((
+        "",
+        Matrix::from_data(VecStorage::new(
+            Dyn(grid.len()),
+            Dyn(grid[0].len()),
+            grid.into_iter().flatten().collect(),
+        )),
+    ))
+}
+/// Parses each digit as a 2d grid (matrix)
+pub fn grdd(i: I) -> IResult<I, Grid<isize>> {
+    let grid = sble(pds)(i)?.1;
     Ok((
         "",
         Matrix::from_data(VecStorage::new(
@@ -401,7 +415,7 @@ pub fn ta(i: I) -> IResult<I, I> {
 #[macro_export]
 macro_rules! parser {
     () => {
-        take(0_usize)
+        parser!(LE)
     };
     (@ $($t:tt)*) => {
         $($t)*
@@ -720,6 +734,13 @@ mod tests {
             Ok((
                 "",
                 Matrix::from_data(VecStorage::new(Dyn(2), Dyn(2), vec!['1', '2', '3', '4']))
+            ))
+        );
+        assert_eq!(
+            grdd("12\n34"),
+            Ok((
+                "",
+                Matrix::from_data(VecStorage::new(Dyn(2), Dyn(2), vec![1, 2, 3, 4]))
             ))
         );
     }

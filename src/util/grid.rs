@@ -16,9 +16,9 @@ pub trait MatrixTools<T> {
     type Padded;
 
     /// A submatrix of the matrix, centered at (x, y) with radius r.
-    fn adj<'a>(&'a self, x: usize, y: usize, r: usize) -> Self::Adjacent<'a>;
+    fn adj(&self, x: usize, y: usize, r: usize) -> Self::Adjacent<'_>;
     /// A mutable submatrix of the matrix, centered at (x, y) with radius r. Clipped to the bounds of the matrix.
-    fn adj_mut<'a>(&'a mut self, x: usize, y: usize, r: usize) -> Self::AdjacentMut<'a>;
+    fn adj_mut(&mut self, x: usize, y: usize, r: usize) -> Self::AdjacentMut<'_>;
     /// Iterator over the matrix, yielding the index and the value at that index. Note that the order column-major.
     fn enumerate_iter<'a>(&'a self) -> impl Iterator<Item = (usize, usize, &'a T)>
     where
@@ -109,7 +109,7 @@ where
         >>::Buffer,
     >;
 
-    fn adj<'a>(&'a self, x: usize, y: usize, r: usize) -> Self::Adjacent<'a> {
+    fn adj(&self, x: usize, y: usize, r: usize) -> Self::Adjacent<'_> {
         self.view(
             (x.saturating_sub(r), y.saturating_sub(r)),
             (
@@ -119,7 +119,7 @@ where
         )
     }
 
-    fn adj_mut<'a>(&'a mut self, x: usize, y: usize, r: usize) -> Self::AdjacentMut<'a> {
+    fn adj_mut(&mut self, x: usize, y: usize, r: usize) -> Self::AdjacentMut<'_> {
         let x1 = x.saturating_sub(r);
         let y1 = y.saturating_sub(r);
         let w = limit_index_adj(x, self.shape().0, r);
