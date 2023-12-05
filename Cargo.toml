@@ -100,5 +100,9 @@ name = "2304"
 path = "bin/2023/04/bin.rs"
 
 [[bin]]
+name = "2305"
+path = "bin/2023/05/bin.rs"
+
+[[bin]]
 name = "cses01"
 path = "bin/cses/01.rs"
