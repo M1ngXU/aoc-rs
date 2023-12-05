@@ -423,6 +423,12 @@ macro_rules! parser {
     (($($t:tt)*)) => {
         parser!($($t)*)
     };
+    (~ $single_token:literal $($rest:tt)*) => {
+        parser!((@ tu($single_token)) $($rest)*)
+    };
+    (~ $single_token:literal > $($rest:tt)*) => {
+        parser!((~ $single_token) > $($rest)*)
+    };
     ($single_token:literal) => {
         t!($single_token)
     };
@@ -444,47 +450,38 @@ macro_rules! parser {
     ($single_token:tt) => {
         $single_token
     };
-    ((| $($content:tt)*)[LE]*) => {
+    ((| $($content:tt)*)[LE]) => {
         sb(parser!(LE), mp(alt((tu("\r\n"), tu("\n"), ta)), parser!($($content)*)))
     };
-    ((| $($content:tt)*)[LELE]*) => {
+    ((| $($content:tt)*)[LELE]) => {
         sb(parser!(LELE), mp(alt((tu("\r\n\r\n"), tu("\n\n"), ta)), parser!($($content)*)))
     };
-    ((| $($content:tt)*)[LELELE]*) => {
+    ((| $($content:tt)*)[LELELE]) => {
         sb(parser!(LELELE), mp(alt((tu("\r\n\r\n\r\n"), tu("\n\n\n"), ta)), parser!($($content)*)))
     };
-    ((| $($content:tt)*)[$($delimiter:tt)?]*) => {
+    ((| $($content:tt)*)[$($delimiter:tt)?]) => {
         sb(parser!($($delimiter:tt)?), mp(alt(($(tu($delimiter),)? ta,)), parser!($($content)*)))
     };
-    (($($content:tt)*)[$($delimiter:tt)*]*) => {
-        sb(parser!($($delimiter)*), parser!($($content)*))
-    };
-    ($trash:tt << ($($useful:tt)*)) => {
-        pcd(parser!($trash), parser!($($useful)*))
+    ($content:tt [$($delimiter:tt)*]) => {
+        sb(parser!($($delimiter)*), parser!($content))
     };
     ($trash:tt <<| $($useful:tt)*) => {
         parser!($trash << ($($useful)*))
     };
     ($trash:tt << $useful:tt $($rest:tt)*) => {
-        pair(parser!($trash << ($useful)), parser!($($rest)*))
-    };
-    ($useful:tt >> ($($trash:tt)*)) => {
-        tmd(parser!($useful), parser!($($trash)*))
+        parser!((@ pcd(parser!($trash), parser!($useful))) $($rest)*)
     };
     ($useful:tt >>| $($trash:tt)*) => {
         parser!($useful >> ($($trash)*))
     };
     ($useful:tt >> $trash:tt $($rest:tt)*) => {
-        pair(parser!($useful >> ($trash)), parser!($($rest)*))
-    };
-    ($first:tt > ($($second:tt)*)) => {
-        mp(parser!($first), parser!($($second)*))
+        parser!((@ tmd(parser!($useful), parser!($trash))) $($rest)*)
     };
     ($first:tt >| $($second:tt)*) => {
         mp(parser!($first), parser!($($second)*))
     };
     ($first:tt > $second:tt $($rest:tt)*) => {
-        pair(parser!($first > ($second)), parser!($($rest)*))
+        parser!((@ mp(parser!($first), parser!($second))) $($rest)*)
     };
     ($lit:literal $($rest:tt)*) => {
         pair(t!($lit), parser!($($rest)*))
@@ -527,20 +524,23 @@ mod tests {
 
     #[test]
     fn test_macro00() {
-        let mut a = parser!((| id)[LE]*);
+        let mut a = parser!((| id)[LE]);
         let b = a("abc\ndef");
         assert_eq!(b, Ok(("", vec!["abc", "def"])));
-        let mut a = parser!((| id)[LELE]*);
+        let mut a = parser!((| id)[LELE]);
         let b = a("abc\r\n\r\ndef");
         assert_eq!(b, Ok(("", vec!["abc", "def"])));
-        let mut a = parser!((| id)[LELELE]*);
+        let mut a = parser!((| id)[LELELE]);
         let b = a("abc\n\n\ndef");
         assert_eq!(b, Ok(("", vec!["abc", "def"])));
     }
 
     #[test]
     fn test_macro01() {
-        let mut a = parser!((pn)[le]*);
+        let mut a = parser!((pn)[le]);
+        let b = a("1\n2");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+        let mut a = parser!(pn[le]);
         let b = a("1\n2");
         assert_eq!(b, Ok(("", vec![1, 2])));
         let mut a = parser!((@ take(1_usize))*);
@@ -550,67 +550,79 @@ mod tests {
 
     #[test]
     fn test_macro02() {
-        let mut a = parser!(("n:" pn)[le]*);
+        let mut a = parser!(("n:" pn)[le]);
         let b = a("n:1\nn:2");
         assert_eq!(b, Ok(("", vec![("n:", 1), ("n:", 2)])));
-        let mut a = parser!((@ pair(t!("n:"), pn))[le]*);
+        let mut a = parser!((@ pair(t!("n:"), pn))[le]);
         let b = a("n:1\nn:2");
         assert_eq!(b, Ok(("", vec![("n:", 1), ("n:", 2)])));
+        let mut a = parser!((~"\n") > pn);
+        let b = a("3n:1\nn:2");
+        assert_eq!(b, Ok(("\nn:2", 3)));
+        let mut a = parser!(~"\n" > pn);
+        let b = a("3n:1\nn:2");
+        assert_eq!(b, Ok(("\nn:2", 3)));
     }
 
     #[test]
     fn test_macro03() {
-        let mut a = parser!((("n:") << pn (ms1) <<| pn)[le]*);
+        let mut a = parser!((("n:") << pn (ms1) <<| pn)[le]);
         let b = a("n:1 2\nn:2 3");
         assert_eq!(b, Ok(("", vec![(1, 2), (2, 3)])));
-        let mut a = parser!(("n:" << pn ms1 <<| pn)[le]*);
+        let mut a = parser!(("n:" << pn ms1 <<| pn)[le]);
         let b = a("n:1 2\nn:2 3");
         assert_eq!(b, Ok(("", vec![(1, 2), (2, 3)])));
-        let mut a = parser!(((pn) >> "n" (pn) >>| "f")[le]*);
+        let mut a = parser!(((pn) >> "n" (pn) >>| "f")[le]);
         let b = a("1n2f\n2n3f");
         assert_eq!(b, Ok(("", vec![(1, 2), (2, 3)])));
-        let mut a = parser!((pn >> "n" pn >>| "f")[le]*);
+        let mut a = parser!((pn >> "n" pn >>| "f")[le]);
         let b = a("1n2f\n2n3f");
         assert_eq!(b, Ok(("", vec![(1, 2), (2, 3)])));
-        let mut a = parser!(((pn) >>| "n")[le]*);
+        let mut a = parser!(((pn) >>| "n")[le]);
         let b = a("1n\n2n");
         assert_eq!(b, Ok(("", vec![1, 2])));
-        let mut a = parser!((pn >>| "n")[le]*);
+        let mut a = parser!((pn >>| "n")[le]);
         let b = a("1n\n2n");
         assert_eq!(b, Ok(("", vec![1, 2])));
-        let mut a = parser!(((pn) >> ("n"))[le]*);
+        let mut a = parser!(((pn) >> ("n"))[le]);
         let b = a("1n\n2n");
         assert_eq!(b, Ok(("", vec![1, 2])));
-        let mut a = parser!((pn >> ("n"))[le]*);
+        let mut a = parser!((pn >> ("n"))[le]);
+        let b = a("1n\n2n");
+        assert_eq!(b, Ok(("", vec![1, 2])));
+        let mut a = parser!((pn >> "n")[le]);
         let b = a("1n\n2n");
         assert_eq!(b, Ok(("", vec![1, 2])));
     }
 
     #[test]
     fn test_macro04() {
-        let mut a = parser!((("n:" ms0) <<| pn)[le]*);
+        let mut a = parser!((("n:" ms0) <<| pn)[le]);
         let b = a("n:  1\nn:2");
         assert_eq!(b, Ok(("", vec![1, 2])));
-        let mut a = parser!((("n:" ms1) <<| pf)[le]*);
+        let mut a = parser!((("n:" ms1) <<| pf)[le]);
         let b = a("n:  1.0\nn:2");
         assert_eq!(b, Ok(("\nn:2", vec![1.0])));
-        let mut a = parser!((("n:" ms1) << (pf))[le]*);
+        let mut a = parser!((("n:" ms1) << (pf))[le]);
+        let b = a("n:  1.0\nn:2");
+        assert_eq!(b, Ok(("\nn:2", vec![1.0])));
+        let mut a = parser!((("n:" ms1) << pf)[le]);
         let b = a("n:  1.0\nn:2");
         assert_eq!(b, Ok(("\nn:2", vec![1.0])));
     }
 
     #[test]
     fn test_macro05() {
-        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) >| pn)[le]*);
+        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) >| pn)[le]);
         let b = a("n:  1\nn:2");
         assert_eq!(b, Ok(("", vec![1, 2])));
-        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) > pn "t")[le]*);
+        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) > pn "t")[le]);
         let b = a("n:  1t\nn:2t");
         assert_eq!(b, Ok(("", vec![(1, "t"), (2, "t")])));
-        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) >| @ id)[le]*);
+        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) >| @ id)[le]);
         let b = a("n:  1\nn:2");
         assert_eq!(b, Ok(("", vec!["1", "2"])));
-        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) > (pn))[le]*);
+        let mut a = parser!(((("n:" ms0) << (@ take(1usize))) > (pn))[le]);
         let b = a("n:  1\nn:2");
         assert_eq!(b, Ok(("", vec![1, 2])));
     }

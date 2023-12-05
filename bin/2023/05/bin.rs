@@ -3,7 +3,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = parser!("seeds: " << ((pn)[" "]*) LELE << ((((@ tu("\n")) le) << (((pn " " << pn " " <<| pn))[le]*))[LELE]*));
+    let p = parser!("seeds: " << (pn[" "]) LELE << (((~ "\n" le) << (((pn " " << pn " " <<| pn))[le]))[LELE]));
     let s = pi!(p);
 
     let (seeds, other) = s;
@@ -34,7 +34,7 @@ fn one() {
 }
 
 fn two() {
-    let p = parser!("seeds: " << ((pn)[" "]*) LELE << ((((@ tu("\n")) le) << (((pn " " << pn " " <<| pn))[le]*))[LELE]*));
+    let p = parser!("seeds: " << (pn[" "]) LELE << (((~ "\n" le) << (((pn " " << pn " " <<| pn))[le]))[LELE]));
     let s = pi!(p);
 
     let (seeds, other) = s;

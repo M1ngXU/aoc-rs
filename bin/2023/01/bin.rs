@@ -3,7 +3,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = sble(pds);
+    let p = parser!(pds[LE]);
     let s = pi!("example1.txt": p);
     s.into_iter().map(|r| 10 * r.f() + r.l()).s().save()
 }

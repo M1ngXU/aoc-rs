@@ -5,7 +5,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p2 = parser!((| ("Card" ms0) << pn (@ tu("|")) > pns (ms0 "|" ms0) <<| pns)[LE]*);
+    let p2 = parser!((| ("Card" ms0) << pn ~"|" > pns (ms0 "|" ms0) <<| pns)[LE]);
     let s: Vec<(isize, (Vec<isize>, Vec<isize>))> = pi!(p2);
     s.into_iter()
         .map(|(_, (b, c))| (1 << c.into_iter().filter(|c| b.contains(&c)).count()) >> 1)
@@ -14,7 +14,7 @@ fn one() {
 }
 
 fn two() {
-    let p2 = parser!((| ("Card" ms0) << pn (@ tu("|")) > pns (ms0 "|" ms0) <<| pns)[LE]*);
+    let p2 = parser!((| ("Card" ms0) << pn ~"|" > pns (ms0 "|" ms0) <<| pns)[LE]);
     let s = pi!(p2);
     let mut cards = HashMap::<isize, isize>::new();
     for (i, (b, c)) in &s {
