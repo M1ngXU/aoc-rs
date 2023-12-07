@@ -423,11 +423,11 @@ macro_rules! parser {
     (($($t:tt)*)) => {
         parser!($($t)*)
     };
-    (~ $single_token:literal $($rest:tt)*) => {
-        parser!((@ tu($single_token)) $($rest)*)
-    };
     (~ $single_token:literal > $($rest:tt)*) => {
-        parser!((~ $single_token) > $($rest)*)
+        parser!((@ tu($single_token)) > $($rest)*)
+    };
+    (~ $single_token:literal $($rest:tt)*) => {
+        parser!(~ $single_token > $($rest)*)
     };
     ($single_token:literal) => {
         t!($single_token)
@@ -556,10 +556,10 @@ mod tests {
         let mut a = parser!((@ pair(t!("n:"), pn))[le]);
         let b = a("n:1\nn:2");
         assert_eq!(b, Ok(("", vec![("n:", 1), ("n:", 2)])));
-        let mut a = parser!((~"\n") > pn);
+        let mut a = parser!(~"\n" > pn);
         let b = a("3n:1\nn:2");
         assert_eq!(b, Ok(("\nn:2", 3)));
-        let mut a = parser!(~"\n" > pn);
+        let mut a = parser!(~"\n" pn);
         let b = a("3n:1\nn:2");
         assert_eq!(b, Ok(("\nn:2", 3)));
     }
