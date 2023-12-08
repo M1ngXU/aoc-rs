@@ -24,6 +24,14 @@ gcd = "2.3.0"
 ex = []
 dex = []
 
+# # https://github.com/johnthagen/min-sized-rust
+# [profile.release]
+# lto = true
+# codegen-units = 1
+# panic = 'abort'
+# strip = true
+# rpath = true
+
 [[bin]]
 name = "2201"
 path = "bin/2022/01/bin.rs"

@@ -77,10 +77,7 @@ fn twop() {
         map[l] = left << 16 | right;
     }
     let rest = Arc::new(map);
-    let mut instructions = t
-        .into_iter()
-        .map(|l| if l == 'L' { 16 } else { 0 })
-        .collect_vec();
+    let instructions = t.into_iter().map(|l| l == 'L').collect_vec();
     let instructions = Arc::new(instructions);
     let mut recv = vec![];
     let starts = rest_old
@@ -107,7 +104,11 @@ fn twop() {
                     s.send(found).unwrap();
                     found = vec![];
                 }
-                location = (rest[location] >> instructions[j]) & 0xFFFF;
+                if instructions[j] {
+                    location = rest[location] >> 16;
+                } else {
+                    location = rest[location] & 0xFFFF;
+                }
                 if location >= z {
                     found.push(i);
                 }
@@ -128,7 +129,7 @@ fn twop() {
             .unwrap();
         if !intersection.is_empty() {
             intersection.into_iter().mn().save();
-            // exit(0);
+            return;
         }
         println!(
             "Iteration: {}, Iterations/second: {:.0}",
@@ -143,5 +144,5 @@ fn main() {
     print!("Part 1: ");
     one();
     print!("Part 2: ");
-    twop();
+    two();
 }
