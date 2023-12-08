@@ -1,6 +1,6 @@
 #![feature(iter_repeat_n, iter_map_windows, iter_from_coroutine)]
 
-use std::{process::exit, sync::Arc, thread::available_parallelism, time::Instant};
+use std::{arch::asm, process::exit, sync::Arc, thread::available_parallelism, time::Instant};
 
 use aoc_rs::prelude::*;
 
@@ -74,14 +74,14 @@ fn twop() {
         .copied()
         .map(|(l, (left, right))| (mapping[l], mapping[left], mapping[right]))
     {
-        map[l] = (left << 16) | right;
+        map[l] = left << 16 | right;
     }
     let rest = Arc::new(map);
-    let instructions = Arc::new(
-        t.into_iter()
-            .map(|l| if l == 'L' { 16 } else { 0 })
-            .collect_vec(),
-    );
+    let mut instructions = t
+        .into_iter()
+        .map(|l| if l == 'L' { 16 } else { 0 })
+        .collect_vec();
+    let instructions = Arc::new(instructions);
     let mut recv = vec![];
     let starts = rest_old
         .iter()
@@ -99,14 +99,21 @@ fn twop() {
         let mut location = starts[i];
         std::thread::spawn(move || {
             let mut found = vec![];
-            for (i, instruction) in instructions.iter().copied().cycle().enumerate() {
-                if (i + 1) & SEND_AFTER == 0 {
+            let mut i = 0;
+            let mut j = 0;
+            loop {
+                i += 1;
+                if i & SEND_AFTER == 0 {
                     s.send(found).unwrap();
                     found = vec![];
                 }
-                location = (rest[location] >> instruction) & u16::MAX as usize;
+                location = (rest[location] >> instructions[j]) & 0xFFFF;
                 if location >= z {
-                    found.push(i + 1);
+                    found.push(i);
+                }
+                j += 1;
+                if j == instructions.len() {
+                    j = 0;
                 }
             }
         });
@@ -121,12 +128,12 @@ fn twop() {
             .unwrap();
         if !intersection.is_empty() {
             intersection.into_iter().mn().save();
-            exit(0);
+            // exit(0);
         }
         println!(
             "Iteration: {}, Iterations/second: {:.0}",
             i * SEND_AFTER,
-            ((recv.len() * SEND_AFTER * MEASURE_LAST_X) as f64)
+            ((SEND_AFTER * MEASURE_LAST_X.min(i)) as f64)
                 / start[i % MEASURE_LAST_X].elapsed().as_secs_f64()
         );
         start[i % MEASURE_LAST_X] = Instant::now();
