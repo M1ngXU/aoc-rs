@@ -2,19 +2,20 @@ use std::time::Instant;
 
 use aoc_rs::util::Save;
 use itertools::Itertools;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 const TABLE: [((isize, isize), (isize, isize), bool); 13] = [
     ((0, 0), (0, 0), false),
     ((0, 0), (0, 0), false),
     ((0, 0), (0, 0), false),
-    ((0, 1), (1, 0), true), // F
+    ((0, 1), (1, 0), false), // F
     ((0, 0), (0, 0), false),
     ((0, 1), (-1, 0), false), // 7
     ((1, 0), (-1, 0), false), // -
     ((0, 0), (0, 0), false),
     ((0, 0), (0, 0), false),
-    ((0, -1), (0, 1), false), // |
-    ((0, -1), (1, 0), false), // L
+    ((0, -1), (0, 1), true), // |
+    ((0, -1), (1, 0), true), // L
     ((0, 0), (0, 0), false),
     ((0, -1), (-1, 0), true), // J
 ];
@@ -81,13 +82,13 @@ fn solve() {
     println!("Part 1: {}", len.div_ceil(2));
 
     print!("Part 2: ");
-    (0..2 * s.len() as isize - 1)
+    (0..s.len())
         .map(|y| {
             let mut inside = 0;
             let mut outside = true;
-            for x in (0..=y.min(s.len() as isize - 1)).filter(|x| y - x < s.len() as isize) {
-                match closed_walk[(y - x) as usize][x as usize] {
-                    1 => outside = !outside,
+            for x in 0..s.len() {
+                match closed_walk[y as usize][x as usize] {
+                    2 => outside = !outside,
                     0 if !outside => inside += 1,
                     _ => {}
                 }
