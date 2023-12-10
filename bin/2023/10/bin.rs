@@ -1,8 +1,7 @@
-#![feature(iter_repeat_n, iter_map_windows, iter_from_coroutine)]
-
 use std::time::Instant;
 
-use aoc_rs::prelude::*;
+use aoc_rs::util::Save;
+use itertools::Itertools;
 
 const TABLE: [((isize, isize), (isize, isize), bool); 13] = [
     ((0, 0), (0, 0), false),
@@ -33,8 +32,8 @@ fn solve() {
                     '|' => 0b1001,
                     'L' => 0b1010,
                     'J' => 0b1100,
-                    'S' => 0b1111,
-                    _ => 0b0000,
+                    'S' => 0b1111, // might connect to anywhere
+                    _ => 0b0000,   // otherwise, '.', connects nowhere
                 })
                 .collect_vec()
         })
