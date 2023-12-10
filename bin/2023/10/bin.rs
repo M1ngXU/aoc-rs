@@ -83,83 +83,135 @@ fn one() {
 }
 
 fn two() {
-    let p = parser!((| ch)[LE]);
-    let s = pi!(p);
-    let s2 = s.clone();
+    // let p = parser!((| ch)[LE]);
+    // let mut s = pi!(p);
+    // let s2 = s.clone();
 
-    let mut m = s
-        .clone()
-        .into_iter()
-        .map(|r| {
-            r.into_iter()
-                .map(|x| match x {
-                    '|' => vec![(0, 1), (0, -1)],
-                    '-' => vec![(1, 0), (-1, 0)],
-                    'L' => vec![(0, -1), (1, 0)],
-                    'J' => vec![(0, -1), (-1, 0)],
-                    '7' => vec![(0, 1), (-1, 0)],
-                    'F' => vec![(0, 1), (1, 0)],
-                    '.' => vec![],
-                    'S' => {
-                        vec![(-1, -1)]
-                    }
-                    _ => unreachable!(),
-                })
-                .collect_vec()
-        })
-        .collect_vec();
-    m.insert(0, vec![vec![]; m[0].len()]);
-    m.push(vec![vec![]; m[0].len()]);
-    for r in m.iter_mut() {
-        r.insert(0, vec![]);
-        r.push(vec![]);
+    // let mut m = s
+    //     .clone()
+    //     .into_iter()
+    //     .map(|r| {
+    //         r.into_iter()
+    //             .map(|x| match x {
+    //                 '|' => vec![(0, 1), (0, -1)],
+    //                 '-' => vec![(1, 0), (-1, 0)],
+    //                 'L' => vec![(0, -1), (1, 0)],
+    //                 'J' => vec![(0, -1), (-1, 0)],
+    //                 '7' => vec![(0, 1), (-1, 0)],
+    //                 'F' => vec![(0, 1), (1, 0)],
+    //                 '.' => vec![],
+    //                 'S' => {
+    //                     vec![(-1, -1)]
+    //                 }
+    //                 _ => unreachable!(),
+    //             })
+    //             .collect_vec()
+    //     })
+    //     .collect_vec();
+    // m.insert(0, vec![vec![]; m[0].len()]);
+    // m.push(vec![vec![]; m[0].len()]);
+    // for r in m.iter_mut() {
+    //     r.insert(0, vec![]);
+    //     r.push(vec![]);
+    // }
+    // let m2 = m.clone();
+
+    // let mm = m
+    //     .into_iter()
+    //     .map(|r| {
+    //         r.into_iter()
+    //             .map(|x| match x.first() {
+    //                 Some(&(-1, -1)) => {
+    //                     let (x, y) = s2
+    //                         .clone()
+    //                         .into_iter()
+    //                         .enumerate()
+    //                         .find_map(|(y, r)| r.into_iter().position(|c| c == 'S').map(|x| (x, y)))
+    //                         .unwrap();
+
+    //                     let mut out = vec![];
+    //                     if m2[y][x + 1].contains(&(0, 1)) {
+    //                         out.push((0, -1));
+    //                     }
+
+    //                     if m2[y + 1][x].contains(&(1, 0)) {
+    //                         out.push((-1, 0));
+    //                     }
+
+    //                     if m2[y + 1][x + 2].contains(&(-1, 0)) {
+    //                         out.push((1, 0));
+    //                     }
+
+    //                     if m2[y + 2][x + 1].contains(&(0, -1)) {
+    //                         out.push((0, 1));
+    //                     }
+    //                     out
+    //                 }
+    //                 _ => x,
+    //             })
+    //             .collect_vec()
+    //     })
+    //     .collect_vec();
+
+    // let (x, y) = s2
+    //     .into_iter()
+    //     .enumerate()
+    //     .find_map(|(y, r)| r.into_iter().position(|c| c == 'S').map(|x| (x, y)))
+    //     .unwrap();
+    // let x = x + 1; // padding
+    // let y = y + 1;
+
+    let s = pi!(parser!((| ch)[LE]));
+    // let (x, y) = s
+    //     .iter()
+    //     .enumerate()
+    //     .find_map(|(y, r)| r.iter().position(|x| x == &'S').map(|x| (x, y)))
+    //     .unwrap();
+    let (x, y) = (1, 1);
+
+    let mut cx = x;
+    let mut cy = y;
+    let mut ox = x;
+    let mut oy = y;
+    let mut closed_walk = HashMap::new();
+    while {
+        let c = s[cy as usize][cx as usize];
+        let ((dx1, dy1), (dx2, dy2), i) = match c {
+            '|' => ((0, 1), (0, -1), false),
+            '-' => ((1, 0), (-1, 0), false),
+            'L' => ((0, -1), (1, 0), false),
+            'J' => ((0, -1), (-1, 0), true),
+            '7' => ((0, 1), (-1, 0), false),
+            'F' => ((0, 1), (1, 0), true),
+            _ => unreachable!(),
+        };
+        let (oox, ooy) = (cx, cy);
+        if cx + dx1 != ox && cy + dy1 != oy {
+            cx += dx1;
+            cy += dy1;
+        } else {
+            cx += dx2;
+            cy += dy2;
+        }
+        (ox, oy) = (oox, ooy);
+        closed_walk.insert((cx, cy), i);
+        cx != x && cy != y
+    } {}
+
+    let mut inside = 0;
+    for y in 0..2 * s.len() as isize - 1 {
+        let mut outside = true;
+        for x in (0..=y.min(s.len() as isize - 1)).filter(|x| y - x < s.len() as isize) {
+            match closed_walk.get(&(x, y - x)) {
+                Some(false) => outside = !outside,
+                None => inside += 1,
+                _ => {}
+            }
+        }
     }
-    let m2 = m.clone();
 
-    let mm = m
-        .into_iter()
-        .map(|r| {
-            r.into_iter()
-                .map(|x| match x.first() {
-                    Some(&(-1, -1)) => {
-                        let (x, y) = s2
-                            .clone()
-                            .into_iter()
-                            .enumerate()
-                            .find_map(|(y, r)| r.into_iter().position(|c| c == 'S').map(|x| (x, y)))
-                            .unwrap();
-
-                        let mut out = vec![];
-                        if m2[y][x + 1].contains(&(0, 1)) {
-                            out.push((0, -1));
-                        }
-
-                        if m2[y + 1][x].contains(&(1, 0)) {
-                            out.push((-1, 0));
-                        }
-
-                        if m2[y + 1][x + 2].contains(&(-1, 0)) {
-                            out.push((1, 0));
-                        }
-
-                        if m2[y + 2][x + 1].contains(&(0, -1)) {
-                            out.push((0, 1));
-                        }
-                        out
-                    }
-                    _ => x,
-                })
-                .collect_vec()
-        })
-        .collect_vec();
-
-    let (x, y) = s2
-        .into_iter()
-        .enumerate()
-        .find_map(|(y, r)| r.into_iter().position(|c| c == 'S').map(|x| (x, y)))
-        .unwrap();
-    let x = x + 1; // padding
-    let y = y + 1;
+    inside.save();
+    panic!();
 
     let reachable = dijkstraa(
         (0, (x as isize, y as isize)),
@@ -173,6 +225,7 @@ fn two() {
         |_, _| 0,
     );
 
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     enum State {
         Loop,
         NonBlocking,
@@ -184,59 +237,27 @@ fn two() {
         .map(|r| r.iter().map(|_| State::Ground).collect_vec())
         .collect_vec();
     for (_, (x, y)) in reachable {
-        if !['F', 'L'].contains(&s[y as usize - 1][x as usize - 1]) {
+        if ['F', 'J'].contains(&s[y as usize - 1][x as usize - 1]) {
             mmm[y as usize][x as usize] = State::NonBlocking;
-        } else if s[y as usize - 1][x as usize - 1] != '.' {
+        } else {
             mmm[y as usize][x as usize] = State::Loop;
         }
     }
 
+    println!("{mmm:?}");
+
     let mut inside = 0;
-    for y in 0..mmm.len() {
+    for y in 0..2 * mmm.len() - 1 {
         let mut outside = true;
-        for x in 0..=y {
-            if mmm[y - x][x] == State::Loop {
-                outside = !outside;
-            } else {
+        for x in (0..=y.min(mmm.len() - 1)).filter(|x| y - x < mmm.len()) {
+            match mmm[y - x][x] {
+                State::Loop => outside = !outside,
+                State::Ground if !outside => inside += 1,
+                _ => {}
             }
         }
     }
 
-    let mut inside = 0;
-    'outer: for (x, y) in (1..mmm[0].len() - 1)
-        .cartesian_product(1..mmm.len() - 1)
-        .filter(|(x, y)| mmm[*y][*x].is_empty())
-    {
-        for dx in -1..=1 {
-            for dy in -1..=1 {
-                if (dx != 0 && dy != 0) {
-                    //(dx == 0 || dy == 0) && dx != dy {
-                    let mut xx = x as isize;
-                    let mut yy = y as isize;
-                    let mut inside = 0;
-                    while (1..mmm[0].len() - 1).contains(&(xx as usize))
-                        && (1..mmm.len() - 1).contains(&(yy as usize))
-                    {
-                        let non_blocking = vec![(-dx, 0), (0, dy), (0, -dy), (dx, 0)];
-                        if !(mmm[yy as usize][xx as usize].contains(&non_blocking[0])
-                            && mmm[yy as usize][xx as usize].contains(&non_blocking[1])
-                            || mmm[yy as usize][xx as usize].contains(&non_blocking[2])
-                                && mmm[yy as usize][xx as usize].contains(&non_blocking[3]))
-                            && !mmm[yy as usize][xx as usize].is_empty()
-                        {
-                            inside += 1;
-                        }
-                        xx += dx;
-                        yy += dy;
-                    }
-                    if inside % 2 == 0 {
-                        continue 'outer;
-                    }
-                }
-            }
-        }
-        inside += 1;
-    }
     inside.save();
 }
 
