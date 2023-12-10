@@ -193,3 +193,49 @@ where
     }
     None
 }
+
+pub fn dijkstraa<
+    C: PartialEq + Eq + PartialOrd + Ord + Clone + Hash,
+    V: PartialEq + Eq + Hash + Clone,
+>(
+    (start_cost, start_vertex): (C, V),
+    adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
+    heuristic: impl Fn(&C, &V) -> C,
+) -> HashSet<(C, V)>
+where
+    for<'a> &'a C: Add<&'a C, Output = C>,
+{
+    let mut distance_to = HashSet::<(C, V)>::new();
+    let mut visited = HashSet::new();
+    let mut queue = BinaryHeap::new();
+    queue.push(Vertex {
+        heuristic: heuristic(&start_cost, &start_vertex),
+        cost: start_cost,
+        value: start_vertex.clone(),
+    });
+    let mut predecessor = HashMap::new();
+    while let Some(next) = queue.pop() {
+        if visited.contains(&next.value) {
+            continue;
+        }
+        distance_to.insert((next.cost.clone(), next.value.clone()));
+        visited.insert(next.value.clone());
+        let adj = adjacent(&next.cost, &next.value);
+        for (cost, vertex) in adj {
+            if let Some((c, v)) = predecessor.get_mut(&vertex) {
+                if &cost < c {
+                    *c = cost.clone();
+                    *v = next.value.clone();
+                }
+            } else {
+                predecessor.insert(vertex.clone(), (cost.clone(), next.value.clone()));
+            }
+            queue.push(Vertex {
+                heuristic: heuristic(&cost, &vertex),
+                cost,
+                value: vertex,
+            });
+        }
+    }
+    distance_to
+}
