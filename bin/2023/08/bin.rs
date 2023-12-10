@@ -144,5 +144,5 @@ fn main() {
     print!("Part 1: ");
     one();
     print!("Part 2: ");
-    two();
+    twop();
 }

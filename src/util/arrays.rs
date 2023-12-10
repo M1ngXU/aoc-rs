@@ -1,5 +1,11 @@
-use crate::itertools2::Arithmetic;
-use std::iter::{Product, Sum};
+use itertools::Itertools;
+
+use crate::itertools2::{Arithmetic, Itertools2};
+use std::{
+    fmt::Debug,
+    iter::{Product, Sum},
+    ops::Sub,
+};
 
 /// Dumb compiler thinks that vec might impl iterator in the future
 pub trait ArithmeticV<T> {
@@ -15,9 +21,13 @@ pub trait ArithmeticV<T> {
     fn f(self) -> T;
     /// equivalent to `.last().unwrap()`
     fn l(self) -> T;
+    /// difference between two values
+    fn d(self) -> Vec<T>
+    where
+        T: Copy + Sub<Output = T> + 'static;
 }
 
-impl<T: Sum + Product + Ord + Copy> ArithmeticV<T> for &Vec<T> {
+impl<T: Sum + Product + Ord + Copy + Debug> ArithmeticV<T> for &Vec<T> {
     fn s(self) -> T {
         self.iter().copied().s()
     }
@@ -41,8 +51,15 @@ impl<T: Sum + Product + Ord + Copy> ArithmeticV<T> for &Vec<T> {
     fn l(self) -> T {
         *self.last().unwrap()
     }
+
+    fn d(self) -> Vec<T>
+    where
+        T: Copy + Sub<Output = T> + 'static,
+    {
+        self.iter().copied().d().collect_vec()
+    }
 }
-impl<const N: usize, T: Sum + Product + Ord + Copy> ArithmeticV<T> for &[T; N] {
+impl<const N: usize, T: Sum + Product + Ord + Copy + Debug> ArithmeticV<T> for &[T; N] {
     fn s(self) -> T {
         self.iter().copied().s()
     }
@@ -65,6 +82,13 @@ impl<const N: usize, T: Sum + Product + Ord + Copy> ArithmeticV<T> for &[T; N] {
 
     fn l(self) -> T {
         *self.last().unwrap()
+    }
+
+    fn d(self) -> Vec<T>
+    where
+        T: Copy + Sub<Output = T> + 'static,
+    {
+        self.iter().copied().d().collect_vec()
     }
 }
 

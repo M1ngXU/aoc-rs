@@ -52,14 +52,11 @@ pub fn download_input(dir: &Path) {
         "Error: {} ({base})",
         res.text().unwrap()
     );
+    let binding = res.text().expect("Failed to read `input`.");
+    let input = binding.trim();
     File::create(dir.join("input.txt"))
         .unwrap()
-        .write_all(
-            res.text()
-                .expect("Failed to read `input`.")
-                .trim()
-                .as_bytes(),
-        )
+        .write_all(input.as_bytes())
         .expect("Failed to save `input.txt`.");
 
     let res = reqwest::blocking::get(base).unwrap();
@@ -82,6 +79,24 @@ pub fn download_input(dir: &Path) {
     println!("Found example:");
     println!("====================");
     println!("{}", example);
+    println!("====================");
+
+    println!();
+
+    println!("First lines of input:");
+    println!("====================");
+    println!(
+        "{}",
+        input
+            .lines()
+            .take(5)
+            .map(|l| if l.len() > 50 {
+                format!("{} ...", &l[..50])
+            } else {
+                l.to_string()
+            })
+            .join("\n")
+    );
     println!("====================");
 
     std::fs::write(dir.join("example.txt"), example).unwrap();
