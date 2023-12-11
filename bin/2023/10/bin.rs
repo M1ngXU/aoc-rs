@@ -2,7 +2,6 @@ use std::time::Instant;
 
 use aoc_rs::util::Save;
 use itertools::Itertools;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 const TABLE: [((isize, isize), (isize, isize), bool); 13] = [
     ((0, 0), (0, 0), false),
