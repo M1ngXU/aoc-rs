@@ -30,6 +30,7 @@ impl State {
         }
     }
 }
+
 fn rec_call(
     memo: &mut HashMap<State, usize>,
     chars: &Vec<char>,
@@ -66,9 +67,8 @@ fn rec_call(
                 ..s2
             },
         );
-        let v = v1 + v2;
-        memo.insert(state, v);
-        return v;
+        memo.insert(state, v1 + v2);
+        return v1 + v2;
     }
     let mut new_state = state;
     let isdmg = state.set_next_dmg || chars[state.chari] == '#';
@@ -78,28 +78,21 @@ fn rec_call(
     new_state.chari += 1;
     if isdmg {
         new_state.lgroups += 1;
-        let v = rec_call(memo, chars, groups, new_state);
-        memo.insert(state, v);
-        return v;
     } else {
         if state.last_dmg {
             if new_state.groupi < groups.len() && groups[new_state.groupi] == new_state.lgroups {
                 new_state.groupi += 1;
                 new_state.lgroups = 0;
-
-                let v = rec_call(memo, chars, groups, new_state);
-                memo.insert(state, v);
-                return v;
             } else {
                 return 0;
             }
         } else {
             new_state.last_dmg = isdmg;
-            let v = rec_call(memo, chars, groups, new_state);
-            memo.insert(state, v);
-            return v;
         }
     }
+    let v = rec_call(memo, chars, groups, new_state);
+    memo.insert(state, v);
+    v
 }
 
 const REPEATS: usize = 5;
@@ -126,17 +119,53 @@ fn one() {
         })
         .collect_vec();
 
-    s.par_iter()
-        .map(|(c, g)| {
-            rec_call(
-                &mut HashMap::new(),
-                &c,
-                &g,
-                State::new(0, false, 0, 0, false, false),
-            )
+    s.into_par_iter()
+        .map(|(chars, counts)| {
+            let dmgs = chars.iter().filter(|x| x == &&'#').count();
+            let mut dp = vec![vec![vec![[0, 0]; dmgs + 1]; chars.len() + 1]; counts.len() + 1];
+            for i in 0..=chars.len() {
+                dp[0][i][0] = [1, 1];
+            }
+            for j in 1..=counts.len() {
+                for i in 1..=chars.len() {
+                    if chars[i - 1] != '.' {
+                        let j_ = counts[j - 1] as usize;
+                        if i >= j_ {
+                            if chars[i - j_ + 1 - 1..=i - 1].iter().all(|&c| c != '.')
+                                && (i - 1 + 1 == j_ || chars[i - j_ - 1] != '#')
+                            {
+                                let dmgsb = chars[..i - j_ + 1 - 1]
+                                    .iter()
+                                    .filter(|&c| c == &'#')
+                                    .count();
+                                let dmgse = chars[..=i - 1].iter().filter(|&c| c == &'#').count();
+                                dp[j][i][dmgse][0] = dp[j - 1][i - j_][dmgsb][1];
+                            }
+                        }
+                    }
+                    if chars[i - 1] != '#' {
+                        for d in 0..=dmgs {
+                            dp[j][i][d][1] = dp[j][i - 1][d].s();
+                        }
+                    }
+                }
+            }
+            dp[counts.len()][chars.len()][dmgs].into_iter().s()
         })
         .sum::<usize>()
         .save();
+
+    // s.par_iter()
+    //     .map(|(c, g)| {
+    //         rec_call(
+    //             &mut HashMap::new(),
+    //             &c,
+    //             &g,
+    //             State::new(0, false, 0, 0, false, false),
+    //         )
+    //     })
+    //     .sum::<usize>()
+    //     .save();
 }
 
 fn main() {
