@@ -42,7 +42,11 @@ pub fn download_input(dir: &Path) {
             .to_string_lossy()
             .trim_start_matches('0'),
     );
-    let res = reqwest::blocking::Client::new()
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("Auto-Download by M1ngXU: https://github.com/M1ngXU/aoc-rs/blob/0ddff0231a11dbd2ea68ecb4d7e1bca4ff8603f5/src/parser.rs#L34")
+        .build()
+        .unwrap();
+    let res = client
         .get(format!("{}/input", base))
         .header("Cookie", include_str!("../cookie.txt"))
         .send()
@@ -59,7 +63,7 @@ pub fn download_input(dir: &Path) {
         .write_all(input.as_bytes())
         .expect("Failed to save `input.txt`.");
 
-    let res = reqwest::blocking::get(base).unwrap();
+    let res = client.get(base).send().unwrap();
     assert!(res.status().is_success());
     let binding = res.text().unwrap();
     let example = r!("<\\w*>|</\\w*>")
