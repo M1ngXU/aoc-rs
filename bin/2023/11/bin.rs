@@ -3,7 +3,7 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    const C: isize = 1_000_000;
+    const C: isize = 2;
 
     let p = parser!((| ch)[LE]);
     let s = pi!(p);
@@ -28,8 +28,7 @@ fn one() {
         }
         emptiesc[i] = xx;
     }
-    let fltten = s
-        .iter()
+    (s.iter()
         .enumerate()
         .flat_map(|(y, r)| {
             r.clone()
@@ -38,10 +37,6 @@ fn one() {
                 .map(|(x, c)| (y, x, c == '#'))
                 .collect_vec()
         })
-        .collect_vec();
-    (fltten
-        .iter()
-        .copied()
         .filter(|(_, _, c)| *c)
         .permutations(2)
         .map(|v| {
