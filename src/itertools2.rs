@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     fmt::Debug,
     iter::{Product, Sum},
     ops::Sub,
@@ -53,7 +54,7 @@ pub trait Itertools2<T> {
     /// difference between two values
     fn d(self) -> impl Iterator<Item = T>
     where
-        T: Copy + Sub<Output = T> + 'static;
+        T: Copy + Sub<Output = T>;
 }
 impl<T: Debug, I: Iterator<Item = T>> Itertools2<T> for I {
     fn cfsa<const N: usize>(self) -> [T; N] {
@@ -66,21 +67,68 @@ impl<T: Debug, I: Iterator<Item = T>> Itertools2<T> for I {
             .collect_vec()
     }
 
-    fn d(mut self) -> impl Iterator<Item = T>
+    fn d(self) -> impl Iterator<Item = T>
     where
-        T: Copy + Sub<Output = T> + 'static,
+        T: Copy + Sub<Output = T>,
     {
-        let first = self.next();
-        self.scan(
-            first.unwrap_or_else(|| unsafe { std::mem::zeroed::<T>() }),
-            move |last, cur| {
-                first.map(|_| {
-                    let result = cur - *last;
-                    *last = cur;
-                    result
-                })
-            },
-        )
+        self.tuple_windows().map(|(a, b)| b - a)
+    }
+}
+
+pub trait TakeIsize {
+    type Item;
+
+    fn takei(self, i: isize) -> TakeIsizeIter<Self::Item>;
+}
+impl<T, I: Iterator<Item = T> + 'static> TakeIsize for I {
+    type Item = T;
+
+    fn takei(self, i: isize) -> TakeIsizeIter<Self::Item> {
+        TakeIsizeIter::new(self, i)
+    }
+}
+pub struct TakeIsizeIter<T> {
+    iter: Box<dyn Iterator<Item = T>>,
+    buf: VecDeque<T>,
+    i: isize,
+}
+impl<T> TakeIsizeIter<T> {
+    fn new(mut iter: impl Iterator<Item = T> + 'static, mut i: isize) -> Self {
+        let mut buf = VecDeque::new();
+        for _ in 0..-i {
+            if let Some(t) = iter.next() {
+                buf.push_back(t);
+            } else {
+                i = 0;
+                buf.clear();
+                break;
+            }
+        }
+        Self {
+            iter: Box::new(iter),
+            buf,
+            i,
+        }
+    }
+}
+impl<T> Iterator for TakeIsizeIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.i > 0 {
+            self.i -= 1;
+            self.iter.next()
+        } else if self.i < 0 {
+            let n = self.buf.pop_front().unwrap();
+            if let Some(t) = self.iter.next() {
+                self.buf.push_back(t);
+                Some(n)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }
 
@@ -140,5 +188,18 @@ mod tests {
         let empty: Vec<i32> = Vec::new();
         let iter = empty.into_iter();
         assert_eq!(iter.p(), 1); // Product of an empty iterator should be 1
+    }
+
+    #[test]
+    fn test_take_isize() {
+        let iter = 0usize..10;
+        assert_eq!(iter.takei(5).collect_vec(), vec![0, 1, 2, 3, 4]);
+        let iter = 0usize..10;
+        assert_eq!(
+            iter.takei(-1).collect_vec(),
+            vec![0, 1, 2, 3, 4, 5, 6, 7, 8]
+        );
+        let iter = 0usize..10;
+        assert_eq!(iter.takei(-10).collect_vec(), Vec::<usize>::new());
     }
 }

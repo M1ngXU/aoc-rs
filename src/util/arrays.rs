@@ -7,6 +7,31 @@ use std::{
     ops::Sub,
 };
 
+pub trait Indeces1d {
+    /// equivalent to `0..self.len()`
+    fn i(&self) -> impl Iterator<Item = usize> + 'static;
+}
+impl<T> Indeces1d for Vec<T> {
+    fn i(&self) -> impl Iterator<Item = usize> + 'static {
+        0..self.len()
+    }
+}
+impl<const N: usize, T> Indeces1d for [T; N] {
+    fn i(&self) -> impl Iterator<Item = usize> + 'static {
+        0..N
+    }
+}
+impl<const N: usize, T> Indeces1d for &[T; N] {
+    fn i(&self) -> impl Iterator<Item = usize> + 'static {
+        0..N
+    }
+}
+impl<T> Indeces1d for &[T] {
+    fn i(&self) -> impl Iterator<Item = usize> + 'static {
+        0..self.len()
+    }
+}
+
 /// Dumb compiler thinks that vec might impl iterator in the future
 pub trait ArithmeticV<T> {
     /// equivalent to `.sum()` (but no inference issues)
