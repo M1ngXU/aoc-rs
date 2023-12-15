@@ -7,6 +7,7 @@ pub mod prelude {
     pub use crate::parser::*;
     pub use crate::util::*;
     pub use itertools::Itertools;
+    pub use linked_hash_map::LinkedHashMap;
     pub use nalgebra::coordinates::*;
     pub use nalgebra::dimension::*;
     pub use nalgebra::storage::*;

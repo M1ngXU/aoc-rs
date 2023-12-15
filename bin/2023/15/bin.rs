@@ -35,29 +35,21 @@ fn one() {
 fn two() {
     let p = parser!((| id)[","]);
     let s = pi!(p);
-    let mut boxes = HashMap::<S, Vec<(String, usize)>>::new();
+
+    let mut boxes = HashMap::<S, LinkedHashMap<String, usize>>::new();
     for l in s {
         if l.ends_with('-') {
-            let b = S(l[..l.len() - 1].to_string());
-            if let Some(i) = boxes
-                .get(&b)
-                .and_then(|r| r.iter().position(|(x, _)| x == &b.0))
-            {
-                boxes.get_mut(&b).unwrap().remove(i);
-            }
+            let label = S(l[..l.len() - 1].to_string());
+            boxes.entry(label.clone()).or_default().remove(&label.0);
         } else {
-            let (b, a) = l.split_once('=').unwrap();
+            let (label, a) = l.split_once('=').unwrap();
             let a = a.parse::<usize>().unwrap();
-            let b = S(b.to_string());
-            if let Some(i) = boxes
-                .get(&b)
-                .and_then(|r| r.iter().position(|(x, _)| x == &b.0))
-            {
-                let b2 = b.0.clone();
-                boxes.get_mut(&b).unwrap()[i] = (b2, a);
-            } else {
-                boxes.entry(b.clone()).or_insert(vec![]).push((b.0, a));
-            }
+            let label_hash = S(label.to_string());
+            *boxes
+                .entry(label_hash.clone())
+                .or_default()
+                .entry(label.to_string())
+                .or_default() = a;
         }
     }
     boxes
