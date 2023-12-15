@@ -11,7 +11,12 @@ pub mod prelude {
     pub use nalgebra::coordinates::*;
     pub use nalgebra::dimension::*;
     pub use nalgebra::storage::*;
+    // who uses `zero`/`one`/`abs`/`iter`/`clamp` submodule anyway
+    #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
     pub use nalgebra::*;
+    // who uses `zero`/`one`/`abs`/`iter`/`clamp` submodule anyway
+    #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
+    pub use num::*;
     pub use range_utils::*;
     pub use rayon::prelude::*;
     // who uses `bytes` submodule anyway

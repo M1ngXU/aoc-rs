@@ -20,6 +20,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 gcd = "2.3.0"
 linked-hash-map = "0.5.6"
+num = { version = "0.4.1", features = ["num-bigint", "rand", "serde"] }
 
 [features]
 ex = []

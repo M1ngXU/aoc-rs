@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     collections::VecDeque,
     fmt::Debug,
     iter::{Product, Sum},
@@ -115,19 +116,21 @@ impl<T> Iterator for TakeIsizeIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.i > 0 {
-            self.i -= 1;
-            self.iter.next()
-        } else if self.i < 0 {
-            let n = self.buf.pop_front().unwrap();
-            if let Some(t) = self.iter.next() {
-                self.buf.push_back(t);
-                Some(n)
-            } else {
-                None
+        match self.i.cmp(&0) {
+            Ordering::Greater => {
+                self.i -= 1;
+                self.iter.next()
             }
-        } else {
-            None
+            Ordering::Less => {
+                let n = self.buf.pop_front().unwrap();
+                if let Some(t) = self.iter.next() {
+                    self.buf.push_back(t);
+                    Some(n)
+                } else {
+                    None
+                }
+            }
+            Ordering::Equal => None,
         }
     }
 }

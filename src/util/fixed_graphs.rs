@@ -1,19 +1,27 @@
 use std::{
     collections::{BTreeMap, HashMap, HashSet, VecDeque},
     hash::Hash,
+    ops::{Add, AddAssign, Mul, MulAssign},
 };
 
 use itertools::Itertools;
+use nalgebra::DMatrix;
+use num::{One, Zero};
 
 #[derive(Debug, Clone)]
 pub struct FixedGraph<V: Hash> {
     adjacencies: HashMap<V, HashMap<V, isize>>,
 }
-impl<V: Hash + Eq + Clone> FixedGraph<V> {
-    pub fn new() -> Self {
+impl<V: Hash + Eq + Clone> Default for FixedGraph<V> {
+    fn default() -> Self {
         Self {
             adjacencies: HashMap::new(),
         }
+    }
+}
+impl<V: Hash + Eq + Clone> FixedGraph<V> {
+    pub fn new() -> Self {
+        Self::default()
     }
     pub fn add_vertex(&mut self, from: V) {
         self.adjacencies.insert(from, HashMap::new());
@@ -28,7 +36,7 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
     }
     pub fn remove_edge(&mut self, from: &V, to: &V) -> Option<isize> {
         self.adjacencies
-            .get_mut(&from)
+            .get_mut(from)
             .and_then(|edges| edges.remove(to))
     }
     pub fn remove_vertex(&mut self, vertex: &V) -> Option<HashMap<V, isize>> {
@@ -174,10 +182,10 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
 
         let mut distances: HashMap<V, isize> = self
             .adjacencies
-            .iter()
-            .map(|(f, _)| (f.clone(), isize::MAX))
+            .keys()
+            .map(|f| (f.clone(), isize::MAX))
             .collect();
-        *distances.get_mut(&start).unwrap() = 0;
+        *distances.get_mut(start).unwrap() = 0;
         let mut predecessors = HashMap::new();
         predecessors.insert(start.clone(), start.clone());
 
@@ -192,7 +200,7 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
                         continue;
                     }
                     changed = true;
-                    *distances.get_mut(&to).unwrap() = new_cost;
+                    *distances.get_mut(to).unwrap() = new_cost;
                     predecessors.insert(to.clone(), current.clone());
                 }
             }
@@ -295,6 +303,152 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
             distances,
             predecessors,
         })
+    }
+
+    pub fn matrix(&self) -> (DMatrix<Option<isize>>, HashMap<V, usize>, Vec<V>) {
+        let n = self.adjacencies.len();
+
+        let mut mapping_iv = Vec::with_capacity(n);
+        let mut mapping_vi = HashMap::with_capacity(n);
+        let mut matrix = DMatrix::from_element(n, n, None);
+        for (i, v) in self.adjacencies.keys().enumerate() {
+            mapping_iv.push(v.clone());
+            mapping_vi.insert(v.clone(), i);
+        }
+        for (u, edges) in &self.adjacencies {
+            let ui = mapping_vi[u];
+            for (v, w) in edges {
+                let vi = mapping_vi[v];
+                matrix[(ui, vi)] = Some(*w);
+            }
+        }
+
+        (matrix, mapping_vi, mapping_iv)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+/// Useful to get shortest path from `u` to `v` with `k` steps:
+/// - add(x, y) = min(x, y)
+/// - mul(x, y) = x + y
+/// - neutral element for addition: `None`, "infinite"
+/// - neutral element for multiplication: `0`
+///
+/// This is a "semi-ring" (?)
+pub struct MinAdd(Option<isize>);
+impl Add for MinAdd {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(match (self.0, rhs.0) {
+            (Some(x), Some(y)) => Some(x.min(y)),
+            (Some(x), None) => Some(x),
+            (None, Some(y)) => Some(y),
+            (None, None) => None,
+        })
+    }
+}
+impl AddAssign for MinAdd {
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+impl Mul for MinAdd {
+    type Output = Self;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0.zip(rhs.0).map(|(x, y)| x + y))
+    }
+}
+impl MulAssign for MinAdd {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
+}
+impl Zero for MinAdd {
+    fn is_zero(&self) -> bool {
+        self.0.is_none()
+    }
+    fn set_zero(&mut self) {
+        self.0 = None;
+    }
+    fn zero() -> Self {
+        Self(None)
+    }
+}
+impl One for MinAdd {
+    fn is_one(&self) -> bool
+    where
+        Self: PartialEq,
+    {
+        self.0 == Some(0)
+    }
+    fn one() -> Self {
+        Self(Some(0))
+    }
+    fn set_one(&mut self) {
+        self.0 = Some(0);
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+/// Useful to get whether a path exists from `u` to `v` in `k` steps:
+/// - add(x, y) = `x | y`
+/// - mul(x, y) = `x & y`
+/// - neutral element for addition: `false`
+/// - neutral element for multiplication: `true`
+pub struct BooleanRing(bool);
+impl Add for BooleanRing {
+    type Output = Self;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+impl AddAssign for BooleanRing {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+impl Mul for BooleanRing {
+    type Output = Self;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 & rhs.0)
+    }
+}
+impl MulAssign for BooleanRing {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
+}
+impl Zero for BooleanRing {
+    fn is_zero(&self) -> bool {
+        !self.0
+    }
+    fn set_zero(&mut self) {
+        self.0 = false;
+    }
+    fn zero() -> Self {
+        Self(false)
+    }
+}
+impl One for BooleanRing {
+    fn is_one(&self) -> bool
+    where
+        Self: PartialEq,
+    {
+        self.0
+    }
+    fn one() -> Self {
+        Self(true)
+    }
+    fn set_one(&mut self) {
+        self.0 = true;
     }
 }
 
@@ -446,5 +600,124 @@ mod tests {
                 ('D', (1, vec!['D', 'A']))
             ])
         );
+    }
+
+    #[test]
+    fn test_adj_matrix() {
+        let mut cut = FixedGraph::new();
+        cut.add_vertex('A');
+        cut.add_vertex('B');
+        cut.add_vertex('C');
+        cut.add_vertex('D');
+
+        cut.add_edge(&'A', 'B', 1);
+        cut.add_edge(&'A', 'A', 0);
+        cut.add_edge(&'A', 'D', 2);
+        cut.add_edge(&'B', 'B', 0);
+        cut.add_edge(&'B', 'C', 4);
+        cut.add_edge(&'B', 'D', 1);
+        cut.add_edge(&'C', 'C', 0);
+        cut.add_edge(&'C', 'D', -1);
+        cut.add_edge(&'D', 'B', -2);
+        cut.add_edge(&'D', 'D', 0);
+
+        let (matrix, mapping_vi, mapping_iv) = cut.matrix();
+        for (v, i) in &mapping_vi {
+            assert_eq!(*v, mapping_iv[*i]);
+        }
+        let mut expected = DMatrix::from_element(4, 4, None);
+        let a = mapping_vi[&'A'];
+        let b = mapping_vi[&'B'];
+        let c = mapping_vi[&'C'];
+        let d = mapping_vi[&'D'];
+        expected[(a, a)] = Some(0);
+        expected[(a, b)] = Some(1);
+        expected[(a, d)] = Some(2);
+        expected[(b, b)] = Some(3);
+        expected[(b, b)] = Some(0);
+        expected[(b, c)] = Some(4);
+        expected[(b, d)] = Some(1);
+        expected[(c, c)] = Some(0);
+        expected[(c, d)] = Some(-1);
+        expected[(d, b)] = Some(-2);
+        expected[(d, d)] = Some(0);
+        assert_eq!(expected, matrix);
+    }
+
+    #[test]
+    fn test_boolean_ring() {
+        let f = BooleanRing(false);
+        let t = BooleanRing(true);
+        assert_eq!(f + f, f);
+        assert_eq!(f + t, t);
+        assert_eq!(t + f, t);
+        assert_eq!(t + t, t);
+
+        let mut cut = f;
+        cut += f;
+        assert_eq!(cut, f);
+        cut += t;
+        assert_eq!(cut, t);
+        cut *= t;
+        assert_eq!(cut, t);
+        cut = f;
+        cut *= t;
+        assert_eq!(cut, f);
+
+        assert_eq!(f * f, f);
+        assert_eq!(f * t, f);
+        assert_eq!(t * f, f);
+        assert_eq!(t * t, t);
+
+        assert!(f.is_zero());
+        assert!(!f.is_one());
+        assert!(!t.is_zero());
+        assert!(t.is_one());
+
+        assert_eq!(f, BooleanRing::zero());
+        assert_eq!(t, BooleanRing::one());
+    }
+
+    #[test]
+    fn test_minadd() {
+        fn m(i: isize) -> MinAdd {
+            MinAdd(Some(i))
+        }
+        assert_eq!(MinAdd::one() * m(3), m(3));
+        assert_eq!(MinAdd::one() * m(-12), m(-12));
+        assert_eq!(MinAdd::one() * m(0), m(0));
+        assert_eq!(m(3) * MinAdd::one(), m(3));
+        assert_eq!(m(-12) * MinAdd::one(), m(-12));
+        assert_eq!(m(0) * MinAdd::one(), m(0));
+        assert_eq!(MinAdd::one() * MinAdd::one(), MinAdd::one());
+
+        assert_eq!(m(1) + MinAdd::zero(), m(1));
+        assert_eq!(m(0) + MinAdd::zero(), m(0));
+        assert_eq!(m(-1) + MinAdd::zero(), m(-1));
+        assert_eq!(MinAdd::zero() + m(1), m(1));
+        assert_eq!(MinAdd::zero() + m(0), m(0));
+        assert_eq!(MinAdd::zero() + m(-1), m(-1));
+        assert_eq!(MinAdd::zero() + MinAdd::zero(), MinAdd::zero());
+
+        let mut cut = MinAdd::zero();
+        cut += m(10);
+        assert_eq!(cut, m(10));
+        cut += MinAdd::one();
+        assert_eq!(cut, MinAdd::one());
+        cut *= m(15);
+        assert_eq!(cut, m(15));
+        cut *= MinAdd::zero();
+        assert_eq!(cut, MinAdd::zero());
+
+        assert_eq!(m(1) * m(2), m(3));
+        assert_eq!(m(3) * m(-4), m(-1));
+        assert_eq!(m(-15) * m(124), m(109));
+        assert_eq!(m(7) * m(-7), m(0));
+        assert_eq!(m(7) * MinAdd::zero(), MinAdd::zero());
+
+        assert_eq!(m(1) + m(2), m(1));
+        assert_eq!(m(2) + m(15), m(2));
+        assert_eq!(m(-3) + m(12), m(-3));
+        assert_eq!(m(1) + MinAdd::one(), m(0));
     }
 }

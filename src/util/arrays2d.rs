@@ -70,7 +70,7 @@ pub trait Indeces2d {
 }
 impl<T> Indeces2d for Vec<Vec<T>> {
     fn ii(&self) -> impl Iterator<Item = (usize, usize)> + 'static {
-        let x = self.get(0).map(|x| x.len());
+        let x = self.first().map(|x| x.len());
         let len = self.len();
         x.into_iter()
             .flat_map(move |x| (0..x).cartesian_product(0..len))
