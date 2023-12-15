@@ -479,7 +479,7 @@ macro_rules! parser {
         sb(parser!(LELELE), mp(alt((tu("\r\n\r\n\r\n"), tu("\n\n\n"), ta)), parser!($($content)*)))
     };
     ((| $($content:tt)*)[$($delimiter:tt)?]) => {
-        sb(parser!($($delimiter:tt)?), mp(alt(($(tu($delimiter),)? ta,)), parser!($($content)*)))
+        sb(parser!($($delimiter)?), mp(alt(($(tu($delimiter),)? ta,)), parser!($($content)*)))
     };
     ($content:tt [$($delimiter:tt)*]) => {
         sb(parser!($($delimiter)*), parser!($content))

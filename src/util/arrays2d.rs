@@ -1,12 +1,23 @@
 use itertools::Itertools;
 
-pub trait Transpose {
+pub trait MatrixTransform {
     type Transposed;
+    type R90CW;
+    type R90CC;
+    type R180;
 
+    fn mh(self) -> Self;
+    fn mv(self) -> Self;
     fn t(self) -> Self::Transposed;
+    fn r90cw(self) -> Self::R90CW;
+    fn r90cc(self) -> Self::R90CC;
+    fn r128(self) -> Self::R180;
 }
-impl<T> Transpose for Vec<Vec<T>> {
+impl<T> MatrixTransform for Vec<Vec<T>> {
     type Transposed = Self;
+    type R90CW = Self;
+    type R90CC = Self;
+    type R180 = Self;
 
     fn t(self) -> Self::Transposed {
         if self.is_empty() {
@@ -28,6 +39,28 @@ impl<T> Transpose for Vec<Vec<T>> {
             }
         }
         r
+    }
+
+    fn mh(self) -> Self {
+        self.into_iter()
+            .map(|r| r.into_iter().rev().collect_vec())
+            .collect_vec()
+    }
+
+    fn mv(self) -> Self {
+        self.into_iter().rev().collect_vec()
+    }
+
+    fn r90cw(self) -> Self::R90CW {
+        self.t().mh()
+    }
+
+    fn r90cc(self) -> Self::R90CC {
+        self.t().mv()
+    }
+
+    fn r128(self) -> Self::R180 {
+        self.mh().mv()
     }
 }
 
@@ -55,7 +88,7 @@ mod tests {
 
     use itertools::Itertools;
 
-    use crate::prelude::Indeces2d;
+    use crate::prelude::{arrays2d::MatrixTransform, Indeces2d};
 
     #[test]
     fn test_2darray() {
@@ -68,5 +101,22 @@ mod tests {
             cut.ii().collect::<HashSet<_>>(),
             HashSet::from([(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)])
         );
+    }
+
+    #[test]
+    fn test_transform() {
+        let cut = vec![vec![1, 2, 3], vec![4, 5, 6]];
+        assert_eq!(cut.clone().t(), vec![vec![1, 4], vec![2, 5], vec![3, 6]]);
+        assert_eq!(cut.clone().mh(), vec![vec![3, 2, 1], vec![6, 5, 4]]);
+        assert_eq!(cut.clone().mv(), vec![vec![4, 5, 6], vec![1, 2, 3]]);
+        assert_eq!(
+            cut.clone().r90cw(),
+            vec![vec![4, 1], vec![5, 2], vec![6, 3]]
+        );
+        assert_eq!(
+            cut.clone().r90cc(),
+            vec![vec![3, 6], vec![2, 5], vec![1, 4]]
+        );
+        assert_eq!(cut.clone().r128(), vec![vec![6, 5, 4], vec![3, 2, 1]]);
     }
 }
