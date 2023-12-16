@@ -15,8 +15,7 @@ fn one() {
                 y == &(s.len() as isize),
             ]
             .into_iter()
-            .filter(|x| *x)
-            .count()
+            .trues()
                 == 1
         })
         .par_bridge()
@@ -71,14 +70,9 @@ fn one() {
                         }
                     }
                 }
-                beams = vec![];
-                for new in new {
-                    if seen.insert(new) {
-                        beams.push(new);
-                    }
-                }
+                beams = new.into_iter().filter(|&x| seen.insert(x)).collect();
             }
-            energized.into_iter().flatten().filter(|x| *x).count()
+            energized.into_iter().flatten().trues()
         })
         .max()
         .unwrap()

@@ -27,18 +27,31 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
     pub fn add_vertex(&mut self, from: V) {
         self.adjacencies.insert(from, HashMap::new());
     }
-    pub fn add_edge(&mut self, from: &V, to: V, weight: isize) {
-        assert!(
-            self.adjacencies.contains_key(from),
-            "Vertex `from` not found"
-        );
-        assert!(self.adjacencies.contains_key(&to), "Vertex `to` not found");
-        self.adjacencies.get_mut(from).unwrap().insert(to, weight);
+    pub fn add_edge(&mut self, from: V, to: V, weight: isize) {
+        if !self.adjacencies.contains_key(&from) {
+            self.add_vertex(from.clone());
+        }
+        if !self.adjacencies.contains_key(&to) {
+            self.add_vertex(to.clone());
+        }
+        self.adjacencies.get_mut(&from).unwrap().insert(to, weight);
+    }
+    pub fn add_undirected_edge(&mut self, u: V, v: V, weight: isize) {
+        self.add_edge(u.clone(), v.clone(), weight);
+        self.add_edge(v.clone(), u.clone(), weight);
     }
     pub fn remove_edge(&mut self, from: &V, to: &V) -> Option<isize> {
         self.adjacencies
             .get_mut(from)
             .and_then(|edges| edges.remove(to))
+    }
+    pub fn remove_undirected_edge(&mut self, u: &V, v: &V) -> Option<isize> {
+        self.adjacencies
+            .get_mut(v)
+            .and_then(|edges| edges.remove(u));
+        self.adjacencies
+            .get_mut(u)
+            .and_then(|edges| edges.remove(v))
     }
     pub fn remove_vertex(&mut self, vertex: &V) -> Option<HashMap<V, isize>> {
         self.adjacencies.remove(vertex)
@@ -273,7 +286,7 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
         let mut new_graph = self.clone();
         new_graph.add_vertex(unused.clone());
         for vertex in self.adjacencies.keys() {
-            new_graph.add_edge(&unused, vertex.clone(), 0);
+            new_graph.add_edge(unused.clone(), vertex.clone(), 0);
         }
         let level = new_graph.bellman_ford(&unused)?.distances;
         for (vertex, edges) in &mut new_graph.adjacencies {
@@ -525,21 +538,15 @@ mod tests {
     #[test]
     fn test_dijkstra() {
         let mut graph = FixedGraph::new();
-        graph.add_vertex('A');
-        graph.add_vertex('B');
-        graph.add_vertex('C');
-        graph.add_vertex('D');
-        graph.add_vertex('E');
-        graph.add_vertex('F');
-        graph.add_edge(&'A', 'B', 1);
-        graph.add_edge(&'A', 'C', 2);
-        graph.add_edge(&'B', 'C', 1);
-        graph.add_edge(&'B', 'D', 2);
-        graph.add_edge(&'C', 'D', 1);
-        graph.add_edge(&'C', 'E', 2);
-        graph.add_edge(&'D', 'E', 1);
-        graph.add_edge(&'D', 'F', 2);
-        graph.add_edge(&'E', 'F', 1);
+        graph.add_edge('A', 'B', 1);
+        graph.add_edge('A', 'C', 2);
+        graph.add_edge('B', 'C', 1);
+        graph.add_edge('B', 'D', 2);
+        graph.add_edge('C', 'D', 1);
+        graph.add_edge('C', 'E', 2);
+        graph.add_edge('D', 'E', 1);
+        graph.add_edge('D', 'F', 2);
+        graph.add_edge('E', 'F', 1);
 
         let vertex_to_other = graph.dijkstra(&'A');
         assert_eq!(vertex_to_other.distance(&'A'), Some(0));
@@ -565,9 +572,9 @@ mod tests {
         graph.add_vertex('A');
         graph.add_vertex('B');
         graph.add_vertex('C');
-        graph.add_edge(&'A', 'B', -1);
-        graph.add_edge(&'B', 'C', 0);
-        graph.add_edge(&'C', 'A', 0);
+        graph.add_edge('A', 'B', -1);
+        graph.add_edge('B', 'C', 0);
+        graph.add_edge('C', 'A', 0);
 
         assert!(graph.bellman_ford(&'A').is_none());
         assert!(graph.floyd_warshall().is_none());
@@ -575,30 +582,27 @@ mod tests {
 
     #[test]
     fn test_bellman_ford_negative_weights() {
-        // build graph without negative cycle:
         let mut graph = FixedGraph::new();
-        graph.add_vertex('A');
-        graph.add_vertex('B');
-        graph.add_vertex('C');
-        graph.add_vertex('D');
-        graph.add_vertex('E');
-        graph.add_edge(&'A', 'B', 1);
-        graph.add_edge(&'A', 'C', 2);
-        graph.add_edge(&'B', 'C', 1);
-        graph.add_edge(&'B', 'D', -2);
-        graph.add_edge(&'C', 'D', 1);
-        graph.add_edge(&'C', 'E', 2);
-        graph.add_edge(&'D', 'E', -1);
+        graph.add_edge('A', 'B', 1);
+        graph.add_edge('A', 'C', 2);
+        graph.add_edge('B', 'C', 1);
+        graph.add_edge('B', 'D', -2);
+        graph.add_edge('C', 'D', 1);
+        graph.add_undirected_edge('C', 'E', 2);
+        graph.add_edge('D', 'E', -1);
 
         let vertex_to_other = graph.bellman_ford(&'A').unwrap();
         assert_eq!(vertex_to_other.distance(&'A'), Some(0));
         assert_eq!(vertex_to_other.distance(&'B'), Some(1));
-        assert_eq!(vertex_to_other.distance(&'C'), Some(2));
+        assert_eq!(vertex_to_other.distance(&'C'), Some(0));
         assert_eq!(vertex_to_other.distance(&'D'), Some(-1));
         assert_eq!(vertex_to_other.distance(&'E'), Some(-2));
         assert_eq!(vertex_to_other.path(&'A'), Some((0, vec!['A'])));
         assert_eq!(vertex_to_other.path(&'B'), Some((1, vec!['A', 'B'])));
-        assert_eq!(vertex_to_other.path(&'C'), Some((2, vec!['A', 'C'])));
+        assert_eq!(
+            vertex_to_other.path(&'C'),
+            Some((0, vec!['A', 'B', 'D', 'E', 'C']))
+        );
         assert_eq!(vertex_to_other.path(&'D'), Some((-1, vec!['A', 'B', 'D'])));
         assert_eq!(
             vertex_to_other.path(&'E'),
@@ -614,12 +618,12 @@ mod tests {
         graph.add_vertex('C');
         graph.add_vertex('D');
 
-        graph.add_edge(&'A', 'B', 1);
-        graph.add_edge(&'A', 'C', 3);
-        graph.add_edge(&'B', 'C', -1);
-        graph.add_edge(&'B', 'D', 2);
-        graph.add_edge(&'C', 'D', 4);
-        graph.add_edge(&'D', 'A', 1);
+        graph.add_edge('A', 'B', 1);
+        graph.add_edge('A', 'C', 3);
+        graph.add_edge('B', 'C', -1);
+        graph.add_edge('B', 'D', 2);
+        graph.add_edge('C', 'D', 4);
+        graph.add_edge('D', 'A', 1);
 
         let ata = graph.floyd_warshall().unwrap();
         let ata2 = graph.johnson('Z').unwrap();
@@ -676,16 +680,15 @@ mod tests {
         cut.add_vertex('C');
         cut.add_vertex('D');
 
-        cut.add_edge(&'A', 'B', 1);
-        cut.add_edge(&'A', 'A', 0);
-        cut.add_edge(&'A', 'D', 2);
-        cut.add_edge(&'B', 'B', 0);
-        cut.add_edge(&'B', 'C', 4);
-        cut.add_edge(&'B', 'D', 1);
-        cut.add_edge(&'C', 'C', 0);
-        cut.add_edge(&'C', 'D', -1);
-        cut.add_edge(&'D', 'B', -2);
-        cut.add_edge(&'D', 'D', 0);
+        cut.add_edge('A', 'B', 1);
+        cut.add_edge('A', 'A', 0);
+        cut.add_edge('A', 'D', 2);
+        cut.add_edge('B', 'B', 0);
+        cut.add_edge('B', 'C', 4);
+        cut.add_undirected_edge('B', 'D', 1);
+        cut.add_edge('C', 'C', 0);
+        cut.add_edge('C', 'D', -1);
+        cut.add_edge('D', 'D', 0);
 
         let (matrix, mapping_vi, mapping_iv) = cut.matrix();
         for (v, i) in &mapping_vi {
@@ -705,7 +708,7 @@ mod tests {
         expected[(b, d)] = Some(1);
         expected[(c, c)] = Some(0);
         expected[(c, d)] = Some(-1);
-        expected[(d, b)] = Some(-2);
+        expected[(d, b)] = Some(1);
         expected[(d, d)] = Some(0);
         assert_eq!(expected, matrix);
     }

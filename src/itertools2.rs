@@ -8,6 +8,21 @@ use std::{
 
 use itertools::Itertools;
 
+pub trait BooleanIter {
+    /// Counts the amount of `true` in an iter.
+    fn trues(self) -> usize;
+    /// Counts the amount of `false` in an iter.
+    fn falses(self) -> usize;
+}
+impl<I: Iterator<Item = bool>> BooleanIter for I {
+    fn trues(self) -> usize {
+        self.filter(|x| *x).count()
+    }
+    fn falses(self) -> usize {
+        self.filter(|x| !*x).count()
+    }
+}
+
 pub trait Arithmetic<T> {
     /// equivalent to `.sum()` (but no inference issues)
     fn s(self) -> T;

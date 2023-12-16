@@ -203,7 +203,6 @@ where
             return;
         }
         while e > 1 {
-            println!("{e}");
             if e % 2 == 1 {
                 y = self.view().dot_par_strassen(y.view());
                 e -= 1;
