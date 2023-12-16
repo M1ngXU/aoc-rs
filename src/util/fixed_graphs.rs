@@ -6,17 +6,19 @@ use std::{
 };
 
 use itertools::Itertools;
+use linked_hash_map::LinkedHashMap;
 use ndarray::Array2;
 use num::{One, Zero};
 
 #[derive(Debug, Clone)]
-pub struct FixedGraph<V: Hash> {
-    adjacencies: HashMap<V, HashMap<V, isize>>,
+/// Uses a linked hashmap for deterministic adjacency matrices.
+pub struct FixedGraph<V: Hash + Eq> {
+    adjacencies: LinkedHashMap<V, HashMap<V, isize>>,
 }
 impl<V: Hash + Eq + Clone> Default for FixedGraph<V> {
     fn default() -> Self {
         Self {
-            adjacencies: HashMap::new(),
+            adjacencies: LinkedHashMap::new(),
         }
     }
 }
@@ -677,8 +679,8 @@ mod tests {
         let mut cut = FixedGraph::new();
         cut.add_vertex('A');
         cut.add_vertex('B');
-        cut.add_vertex('C');
         cut.add_vertex('D');
+        cut.add_vertex('C');
 
         cut.add_edge('A', 'B', 1);
         cut.add_edge('A', 'A', 0);
@@ -695,10 +697,10 @@ mod tests {
             assert_eq!(*v, mapping_iv[*i]);
         }
         let mut expected = Array2::from_elem((4, 4), None);
-        let a = mapping_vi[&'A'];
-        let b = mapping_vi[&'B'];
-        let c = mapping_vi[&'C'];
-        let d = mapping_vi[&'D'];
+        let a = 0;
+        let b = 1;
+        let c = 3;
+        let d = 2;
         expected[(a, a)] = Some(0);
         expected[(a, b)] = Some(1);
         expected[(a, d)] = Some(2);
