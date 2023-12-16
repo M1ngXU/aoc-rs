@@ -15,12 +15,15 @@ rayon = "1.8.0"
 regex = "1.10.2"
 reqwest = { version = "0.11.22", features = ["blocking"] }
 range-utils = { git = "https://github.com/M1ngXU/range-utils.git" }
-nalgebra = "0.32.3"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 gcd = "2.3.0"
 linked-hash-map = "0.5.6"
 num = { version = "0.4.1", features = ["num-bigint", "rand", "serde"] }
+ndarray = { version = "0.15.6", features = [
+    "matrixmultiply-threading",
+    "rayon",
+] }
 
 [features]
 ex = []
@@ -153,6 +156,10 @@ path = "bin/2023/14/bin.rs"
 [[bin]]
 name = "2315"
 path = "bin/2023/15/bin.rs"
+
+[[bin]]
+name = "2316"
+path = "bin/2023/16/bin.rs"
 
 [[bin]]
 name = "cses01"

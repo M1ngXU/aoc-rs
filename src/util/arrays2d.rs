@@ -73,7 +73,7 @@ impl<T> Indeces2d for Vec<Vec<T>> {
         let x = self.first().map(|x| x.len());
         let len = self.len();
         x.into_iter()
-            .flat_map(move |x| (0..x).cartesian_product(0..len))
+            .flat_map(move |x| (0..len).cartesian_product(0..x).map(|(y, x)| (x, y)))
     }
 }
 impl<const M: usize, const N: usize, T> Indeces2d for [[T; N]; M] {

@@ -17,7 +17,7 @@ mod prelude {
 use std::{fs::File, io::Write, path::Path};
 
 use itertools::Itertools;
-use nalgebra::{Dyn, Matrix, VecStorage};
+use ndarray::Array2;
 use nom::error::{Error, ErrorKind};
 pub use prelude::*;
 
@@ -372,18 +372,18 @@ fn chars_as_str(i: I) -> impl Iterator<Item = I> {
     indices.into_iter().map(|(s, l)| &i[s..s + l])
 }
 
-pub type Grid<T> = Matrix<T, Dyn, Dyn, VecStorage<T, Dyn, Dyn>>;
+pub type Grid<T> = Array2<T>;
 
 /// Parses each character as a 2d grid (matrix)
 pub fn grd(i: I) -> IResult<I, Grid<char>> {
     let grid = sble(ch)(i)?.1;
     Ok((
         "",
-        Matrix::from_data(VecStorage::new(
-            Dyn(grid.len()),
-            Dyn(grid[0].len()),
+        Array2::from_shape_vec(
+            (grid.len(), grid[0].len()),
             grid.into_iter().flatten().collect(),
-        )),
+        )
+        .unwrap(),
     ))
 }
 /// Parses each digit as a 2d grid (matrix)
@@ -391,11 +391,11 @@ pub fn grdd(i: I) -> IResult<I, Grid<isize>> {
     let grid = sble(pds)(i)?.1;
     Ok((
         "",
-        Matrix::from_data(VecStorage::new(
-            Dyn(grid.len()),
-            Dyn(grid[0].len()),
+        Array2::from_shape_vec(
+            (grid.len(), grid[0].len()),
             grid.into_iter().flatten().collect(),
-        )),
+        )
+        .unwrap(),
     ))
 }
 
@@ -736,14 +736,14 @@ mod tests {
             grd("12\n34"),
             Ok((
                 "",
-                Matrix::from_data(VecStorage::new(Dyn(2), Dyn(2), vec!['1', '2', '3', '4']))
+                Array2::from_shape_vec((2, 2), vec!['1', '2', '3', '4']).unwrap()
             ))
         );
         assert_eq!(
             grdd("12\n34"),
             Ok((
                 "",
-                Matrix::from_data(VecStorage::new(Dyn(2), Dyn(2), vec![1, 2, 3, 4]))
+                Array2::from_shape_vec((2, 2), vec![1, 2, 3, 4]).unwrap()
             ))
         );
     }

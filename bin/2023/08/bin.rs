@@ -1,6 +1,6 @@
 #![feature(iter_repeat_n, iter_map_windows, iter_from_coroutine)]
 
-use std::{arch::asm, process::exit, sync::Arc, thread::available_parallelism, time::Instant};
+use std::{sync::Arc, thread::available_parallelism, time::Instant};
 
 use aoc_rs::prelude::*;
 
@@ -24,6 +24,7 @@ fn one() {
     counts.save();
 }
 
+#[allow(dead_code)]
 fn two() {
     let p =
         parser!(~"\n" > ch >> "\n\n" (~" " > id >> " = (" ~"," > id >> ", " ~")" > id >> ")")[LE]);

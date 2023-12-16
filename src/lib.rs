@@ -1,4 +1,4 @@
-#![feature(iter_repeat_n, iter_map_windows, iter_from_coroutine)]
+#![feature(iter_repeat_n, ptr_from_ref, iter_map_windows, iter_from_coroutine)]
 #![cfg_attr(bootstrap, feature(generators))]
 #![cfg_attr(not(bootstrap), feature(coroutines))]
 
@@ -8,12 +8,7 @@ pub mod prelude {
     pub use crate::util::*;
     pub use itertools::Itertools;
     pub use linked_hash_map::LinkedHashMap;
-    pub use nalgebra::coordinates::*;
-    pub use nalgebra::dimension::*;
-    pub use nalgebra::storage::*;
-    // who uses `zero`/`one`/`abs`/`iter`/`clamp` submodule anyway
-    #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
-    pub use nalgebra::*;
+    pub use ndarray::prelude::*;
     // who uses `zero`/`one`/`abs`/`iter`/`clamp` submodule anyway
     #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
     pub use num::*;

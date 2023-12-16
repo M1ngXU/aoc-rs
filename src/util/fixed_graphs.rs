@@ -1,11 +1,12 @@
 use std::{
     collections::{BTreeMap, HashMap, HashSet, VecDeque},
+    fmt::Display,
     hash::Hash,
-    ops::{Add, AddAssign, Mul, MulAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
 };
 
 use itertools::Itertools;
-use nalgebra::DMatrix;
+use ndarray::Array2;
 use num::{One, Zero};
 
 #[derive(Debug, Clone)]
@@ -305,12 +306,12 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
         })
     }
 
-    pub fn matrix(&self) -> (DMatrix<Option<isize>>, HashMap<V, usize>, Vec<V>) {
+    pub fn matrix(&self) -> (Array2<Option<isize>>, HashMap<V, usize>, Vec<V>) {
         let n = self.adjacencies.len();
 
         let mut mapping_iv = Vec::with_capacity(n);
         let mut mapping_vi = HashMap::with_capacity(n);
-        let mut matrix = DMatrix::from_element(n, n, None);
+        let mut matrix = Array2::from_elem((n, n), None);
         for (i, v) in self.adjacencies.keys().enumerate() {
             mapping_iv.push(v.clone());
             mapping_vi.insert(v.clone(), i);
@@ -335,8 +336,8 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
 /// - neutral element for multiplication: `0`
 ///
 /// This is a "semi-ring" (?)
-pub struct MinAdd(Option<isize>);
-impl Add for MinAdd {
+pub struct MinAdd<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero>(pub Option<T>);
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> Add for MinAdd<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -348,13 +349,13 @@ impl Add for MinAdd {
         })
     }
 }
-impl AddAssign for MinAdd {
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> AddAssign for MinAdd<T> {
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
-impl Mul for MinAdd {
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> Mul for MinAdd<T> {
     type Output = Self;
 
     #[allow(clippy::suspicious_arithmetic_impl)]
@@ -362,12 +363,38 @@ impl Mul for MinAdd {
         Self(self.0.zip(rhs.0).map(|(x, y)| x + y))
     }
 }
-impl MulAssign for MinAdd {
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> MulAssign for MinAdd<T> {
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }
 }
-impl Zero for MinAdd {
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> Div for MinAdd<T> {
+    type Output = Self;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn div(self, rhs: Self) -> Self::Output {
+        Self(self.0.zip(rhs.0).map(|(x, y)| x - y))
+    }
+}
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> DivAssign for MinAdd<T> {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = *self / rhs;
+    }
+}
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> Sub for MinAdd<T> {
+    type Output = Self;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn sub(self, _rhs: Self) -> Self::Output {
+        unimplemented!()
+    }
+}
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> SubAssign for MinAdd<T> {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> Zero for MinAdd<T> {
     fn is_zero(&self) -> bool {
         self.0.is_none()
     }
@@ -378,18 +405,26 @@ impl Zero for MinAdd {
         Self(None)
     }
 }
-impl One for MinAdd {
+impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T> + Zero> One for MinAdd<T> {
     fn is_one(&self) -> bool
     where
         Self: PartialEq,
     {
-        self.0 == Some(0)
+        self.0 == Some(T::zero())
     }
     fn one() -> Self {
-        Self(Some(0))
+        Self(Some(T::zero()))
     }
     fn set_one(&mut self) {
-        self.0 = Some(0);
+        self.0 = Some(T::zero());
+    }
+}
+impl<T: Display + Ord + Copy + Add<Output = T> + Sub<Output = T> + Zero> Display for MinAdd<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Some(x) => f.pad(&x.to_string()),
+            None => f.pad("∞"),
+        }
     }
 }
 
@@ -399,8 +434,8 @@ impl One for MinAdd {
 /// - mul(x, y) = `x & y`
 /// - neutral element for addition: `false`
 /// - neutral element for multiplication: `true`
-pub struct BooleanRing(bool);
-impl Add for BooleanRing {
+pub struct Boolean(pub bool);
+impl Add for Boolean {
     type Output = Self;
 
     #[allow(clippy::suspicious_arithmetic_impl)]
@@ -408,12 +443,25 @@ impl Add for BooleanRing {
         Self(self.0 | rhs.0)
     }
 }
-impl AddAssign for BooleanRing {
+impl AddAssign for Boolean {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
-impl Mul for BooleanRing {
+impl Sub for Boolean {
+    type Output = Self;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn sub(self, _rhs: Self) -> Self::Output {
+        unimplemented!()
+    }
+}
+impl SubAssign for Boolean {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+impl Mul for Boolean {
     type Output = Self;
 
     #[allow(clippy::suspicious_arithmetic_impl)]
@@ -421,12 +469,25 @@ impl Mul for BooleanRing {
         Self(self.0 & rhs.0)
     }
 }
-impl MulAssign for BooleanRing {
+impl MulAssign for Boolean {
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }
 }
-impl Zero for BooleanRing {
+impl Div for Boolean {
+    type Output = Self;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn div(self, _rhs: Self) -> Self::Output {
+        unimplemented!()
+    }
+}
+impl DivAssign for Boolean {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
+}
+impl Zero for Boolean {
     fn is_zero(&self) -> bool {
         !self.0
     }
@@ -437,7 +498,7 @@ impl Zero for BooleanRing {
         Self(false)
     }
 }
-impl One for BooleanRing {
+impl One for Boolean {
     fn is_one(&self) -> bool
     where
         Self: PartialEq,
@@ -449,6 +510,11 @@ impl One for BooleanRing {
     }
     fn set_one(&mut self) {
         self.0 = true;
+    }
+}
+impl Display for Boolean {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.pad(&self.0.to_string())
     }
 }
 
@@ -625,7 +691,7 @@ mod tests {
         for (v, i) in &mapping_vi {
             assert_eq!(*v, mapping_iv[*i]);
         }
-        let mut expected = DMatrix::from_element(4, 4, None);
+        let mut expected = Array2::from_elem((4, 4), None);
         let a = mapping_vi[&'A'];
         let b = mapping_vi[&'B'];
         let c = mapping_vi[&'C'];
@@ -646,8 +712,8 @@ mod tests {
 
     #[test]
     fn test_boolean_ring() {
-        let f = BooleanRing(false);
-        let t = BooleanRing(true);
+        let f = Boolean(false);
+        let t = Boolean(true);
         assert_eq!(f + f, f);
         assert_eq!(f + t, t);
         assert_eq!(t + f, t);
@@ -674,13 +740,13 @@ mod tests {
         assert!(!t.is_zero());
         assert!(t.is_one());
 
-        assert_eq!(f, BooleanRing::zero());
-        assert_eq!(t, BooleanRing::one());
+        assert_eq!(f, Boolean::zero());
+        assert_eq!(t, Boolean::one());
     }
 
     #[test]
     fn test_minadd() {
-        fn m(i: isize) -> MinAdd {
+        fn m(i: isize) -> MinAdd<isize> {
             MinAdd(Some(i))
         }
         assert_eq!(MinAdd::one() * m(3), m(3));
@@ -689,7 +755,7 @@ mod tests {
         assert_eq!(m(3) * MinAdd::one(), m(3));
         assert_eq!(m(-12) * MinAdd::one(), m(-12));
         assert_eq!(m(0) * MinAdd::one(), m(0));
-        assert_eq!(MinAdd::one() * MinAdd::one(), MinAdd::one());
+        assert_eq!(MinAdd::<isize>::one() * MinAdd::one(), MinAdd::one());
 
         assert_eq!(m(1) + MinAdd::zero(), m(1));
         assert_eq!(m(0) + MinAdd::zero(), m(0));
@@ -697,7 +763,7 @@ mod tests {
         assert_eq!(MinAdd::zero() + m(1), m(1));
         assert_eq!(MinAdd::zero() + m(0), m(0));
         assert_eq!(MinAdd::zero() + m(-1), m(-1));
-        assert_eq!(MinAdd::zero() + MinAdd::zero(), MinAdd::zero());
+        assert_eq!(MinAdd::<isize>::zero() + MinAdd::zero(), MinAdd::zero());
 
         let mut cut = MinAdd::zero();
         cut += m(10);
