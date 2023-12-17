@@ -6,12 +6,22 @@ pub trait MatrixTransform {
     type R90CC;
     type R180;
 
+    /// Mirror horizontally
     fn mh(self) -> Self;
+    /// Mirror vertically
     fn mv(self) -> Self;
+    /// Transpose
     fn t(self) -> Self::Transposed;
+    /// Rotate 90 deg clockwise
     fn r90cw(self) -> Self::R90CW;
+    /// Rotate 90 deg counter-clockwise
     fn r90cc(self) -> Self::R90CC;
+    /// Rotate 180 deg
     fn r128(self) -> Self::R180;
+    /// Are these isize indeces in bounds?
+    fn ibi(&self, x: isize, y: isize) -> bool;
+    /// Are these usize indeces in bounds?
+    fn ibu(&self, x: usize, y: usize) -> bool;
 }
 impl<T> MatrixTransform for Vec<Vec<T>> {
     type Transposed = Self;
@@ -61,6 +71,15 @@ impl<T> MatrixTransform for Vec<Vec<T>> {
 
     fn r128(self) -> Self::R180 {
         self.mh().mv()
+    }
+
+    fn ibi(&self, x: isize, y: isize) -> bool {
+        (0..self.len() as isize).contains(&y)
+            && (self.len() == 0 || (0..self[0].len() as isize).contains(&x))
+    }
+
+    fn ibu(&self, x: usize, y: usize) -> bool {
+        (0..self.len()).contains(&y) && (self.len() == 0 || (0..self[0].len()).contains(&x))
     }
 }
 
