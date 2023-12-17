@@ -80,7 +80,6 @@ where
             }
             adj
         },
-        |_, _| C::from_isize(0),
         |_, (x, y)| (*x, *y) == end,
     )
     .map(|(c, v)| {
@@ -96,38 +95,23 @@ where
 #[derive(Debug, Clone, Copy)]
 struct Vertex<C, V> {
     cost: C,
-    heuristic: C,
     value: V,
 }
 
-impl<C: PartialEq + Eq + PartialOrd + Ord, V> PartialEq for Vertex<C, V>
-where
-    for<'a> &'a C: Add<&'a C, Output = C>,
-{
+impl<C: PartialEq + Eq + PartialOrd + Ord, V> PartialEq for Vertex<C, V> {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()
     }
 }
-impl<C: PartialEq + Eq + PartialOrd + Ord, V> Eq for Vertex<C, V> where
-    for<'a> &'a C: Add<&'a C, Output = C>
-{
-}
-impl<C: PartialEq + Eq + PartialOrd + Ord, V> PartialOrd for Vertex<C, V>
-where
-    for<'a> &'a C: Add<&'a C, Output = C>,
-{
+impl<C: PartialEq + Eq + PartialOrd + Ord, V> Eq for Vertex<C, V> {}
+impl<C: PartialEq + Eq + PartialOrd + Ord, V> PartialOrd for Vertex<C, V> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
-impl<C: PartialEq + Eq + PartialOrd + Ord, V> Ord for Vertex<C, V>
-where
-    for<'a> &'a C: Add<&'a C, Output = C>,
-{
+impl<C: PartialEq + Eq + PartialOrd + Ord, V> Ord for Vertex<C, V> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (&self.cost + &self.heuristic)
-            .cmp(&(&other.cost + &other.heuristic))
-            .reverse()
+        self.cost.cmp(&other.cost).reverse()
     }
 }
 
@@ -135,29 +119,16 @@ where
 pub fn dijkstrao<C: PartialEq + Eq + PartialOrd + Ord + Clone, V: PartialEq + Eq + Hash + Clone>(
     (start_cost, start_vertex): (C, V),
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
-    heuristic: impl Fn(&C, &V) -> C,
     is_destination: impl Fn(&C, &V) -> bool,
-) -> Option<(C, Vec<(C, V)>)>
-where
-    for<'a> &'a C: Add<&'a C, Output = C>,
-{
-    dijkstra(
-        vec![(start_cost, start_vertex)],
-        adjacent,
-        heuristic,
-        is_destination,
-    )
+) -> Option<(C, Vec<(C, V)>)> {
+    dijkstra(vec![(start_cost, start_vertex)], adjacent, is_destination)
 }
-/// adjacent must be consistent, heuristic MUST BE the shortest path `cost + heuristic` is the same as `cost`
+/// adjacent must be consistent
 pub fn dijkstra<C: PartialEq + Eq + PartialOrd + Ord + Clone, V: PartialEq + Eq + Hash + Clone>(
     starts: Vec<(C, V)>,
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
-    heuristic: impl Fn(&C, &V) -> C,
     is_destination: impl Fn(&C, &V) -> bool,
-) -> Option<(C, Vec<(C, V)>)>
-where
-    for<'a> &'a C: Add<&'a C, Output = C>,
-{
+) -> Option<(C, Vec<(C, V)>)> {
     let mut queue = BinaryHeap::new();
     let mut predecessor = HashMap::new();
     for (start_cost, start_vertex) in &starts {
@@ -166,13 +137,15 @@ where
             (start_cost.clone(), start_vertex.clone()),
         );
         queue.push(Vertex {
-            heuristic: heuristic(&start_cost, &start_vertex),
             cost: start_cost.clone(),
             value: start_vertex.clone(),
         });
     }
     while let Some(next) = queue.pop() {
-        if predecessor[&next.value].0 < next.cost {
+        if predecessor
+            .get(&next.value)
+            .is_some_and(|(v, _)| v < &next.cost)
+        {
             continue;
         }
         if is_destination(&next.cost, &next.value) {
@@ -201,7 +174,6 @@ where
                 predecessor.insert(vertex.clone(), (cost.clone(), next.value.clone()));
             }
             queue.push(Vertex {
-                heuristic: heuristic(&cost, &vertex),
                 cost,
                 value: vertex,
             });
@@ -216,12 +188,8 @@ pub fn dijkstraao<
 >(
     (start_cost, start_vertex): (C, V),
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
-    heuristic: impl Fn(&C, &V) -> C,
-) -> HashMap<V, (C, V)>
-where
-    for<'a> &'a C: Add<&'a C, Output = C>,
-{
-    dijkstraa(vec![(start_cost, start_vertex)], adjacent, heuristic)
+) -> HashMap<V, (C, V)> {
+    dijkstraa(vec![(start_cost, start_vertex)], adjacent)
 }
 pub fn dijkstraa<
     C: PartialEq + Eq + PartialOrd + Ord + Clone + Hash,
@@ -229,11 +197,7 @@ pub fn dijkstraa<
 >(
     starts: Vec<(C, V)>,
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
-    heuristic: impl Fn(&C, &V) -> C,
-) -> HashMap<V, (C, V)>
-where
-    for<'a> &'a C: Add<&'a C, Output = C>,
-{
+) -> HashMap<V, (C, V)> {
     let mut queue = BinaryHeap::new();
     let mut predecessor = HashMap::new();
     for (start_cost, start_vertex) in &starts {
@@ -242,7 +206,6 @@ where
             (start_cost.clone(), start_vertex.clone()),
         );
         queue.push(Vertex {
-            heuristic: heuristic(&start_cost, &start_vertex),
             cost: start_cost.clone(),
             value: start_vertex.clone(),
         });
@@ -264,7 +227,6 @@ where
                 predecessor.insert(vertex.clone(), (cost.clone(), next.value.clone()));
             }
             queue.push(Vertex {
-                heuristic: heuristic(&cost, &vertex),
                 cost,
                 value: vertex,
             });
