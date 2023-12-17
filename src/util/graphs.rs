@@ -61,7 +61,7 @@ fn _dijkstra2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize, T: Clon
 where
     for<'a> &'a C: Add<&'a C, Output = C>,
 {
-    dijkstra(
+    dijkstrao(
         (start_cost, start),
         |c, (x, y)| {
             let mut adj = vec![];
@@ -141,9 +141,26 @@ where
     }
 }
 
-// adjacent must be consistent
-pub fn dijkstra<C: PartialEq + Eq + PartialOrd + Ord + Clone, V: PartialEq + Eq + Hash + Clone>(
+/// adjacent must be consistent
+pub fn dijkstrao<C: PartialEq + Eq + PartialOrd + Ord + Clone, V: PartialEq + Eq + Hash + Clone>(
     (start_cost, start_vertex): (C, V),
+    adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
+    heuristic: impl Fn(&C, &V) -> C,
+    is_destination: impl Fn(&C, &V) -> bool,
+) -> Option<(C, Vec<(C, V)>)>
+where
+    for<'a> &'a C: Add<&'a C, Output = C>,
+{
+    dijkstra(
+        vec![(start_cost, start_vertex)],
+        adjacent,
+        heuristic,
+        is_destination,
+    )
+}
+/// adjacent must be consistent
+pub fn dijkstra<C: PartialEq + Eq + PartialOrd + Ord + Clone, V: PartialEq + Eq + Hash + Clone>(
+    starts: Vec<(C, V)>,
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
     heuristic: impl Fn(&C, &V) -> C,
     is_destination: impl Fn(&C, &V) -> bool,
@@ -153,11 +170,13 @@ where
 {
     let mut visited = HashSet::new();
     let mut queue = BinaryHeap::new();
-    queue.push(Vertex {
-        heuristic: heuristic(&start_cost, &start_vertex),
-        cost: start_cost,
-        value: start_vertex.clone(),
-    });
+    for (start_cost, start_vertex) in starts {
+        queue.push(Vertex {
+            heuristic: heuristic(&start_cost, &start_vertex),
+            cost: start_cost,
+            value: start_vertex.clone(),
+        });
+    }
     let mut predecessor = HashMap::new();
     while let Some(next) = queue.pop() {
         if visited.contains(&next.value) {

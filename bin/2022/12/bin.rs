@@ -16,7 +16,7 @@ fn one() {
     let s = pi!(p);
     let start_y = s.iter().position(|r| r.contains(&'S')).unwrap();
     let start_x = s[start_y].iter().position(|&c| c == 'S').unwrap();
-    dijkstra(
+    dijkstrao(
         (0u32, (start_x, start_y)),
         |c, (x, y)| {
             let mut adj = vec![];
@@ -56,7 +56,7 @@ fn two() {
                 continue;
             }
             min = min.min(
-                dijkstra(
+                dijkstrao(
                     (0u32, (x, y)),
                     |c, (x, y)| {
                         let mut adj = vec![];
