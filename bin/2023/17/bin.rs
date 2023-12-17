@@ -77,7 +77,7 @@ fn two() {
             adj
         },
         |_, _| 0,
-        |_, (x, y, _, _, _, _)| *x as usize == w - 1 && *y as usize == h - 1,
+        |_, (x, y, _, _, min, _)| min == &0 && *x as usize == w - 1 && *y as usize == h - 1,
     )
     .unwrap()
     .0
