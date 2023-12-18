@@ -7,6 +7,7 @@ pub mod graphs;
 pub mod grid;
 pub mod helper_structs;
 pub mod iter_cast;
+pub mod ray_intersections;
 pub mod save;
 
 pub use arrays::*;
@@ -18,4 +19,5 @@ pub use graphs::*;
 pub use grid::*;
 pub use helper_structs::*;
 pub use iter_cast::*;
+pub use ray_intersections::*;
 pub use save::*;
