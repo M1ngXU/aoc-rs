@@ -99,13 +99,10 @@ impl<'a, T: LinalgScalar + Send + Sync> DotPar for ArrayView2<'a, T> {
                 || todo[2].0.dot_par_strassen(todo[2].1),
             );
 
-            let w = &t
-                + (&c + &d - &a)
-                    .view()
-                    .dot_par_strassen((&A + &D - &C).view());
+            let w = &t + (&c + &d - a).view().dot_par_strassen((&A + &D - C).view());
 
-            let abcd = &a + &b - &c - &d;
-            let BCAD = &B + &C - &A - &D;
+            let abcd = &a + &b - c - d;
+            let BCAD = &B + &C - A - D;
             let todo = [
                 (b.view(), B.view()),
                 (abcd.view(), D.view()),

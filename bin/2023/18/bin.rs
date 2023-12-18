@@ -9,6 +9,7 @@ fn one() {
     let mut posy = 0i64;
     let mut fill = 0;
     let mut counts = 0;
+    #[allow(unused_variables)]
     for (id, (count, hex)) in s {
         let code = &hex[..5];
         let id = ["R", "D", "L", "U"][hex

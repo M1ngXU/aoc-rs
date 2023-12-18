@@ -75,11 +75,11 @@ impl<T> MatrixTransform for Vec<Vec<T>> {
 
     fn ibi(&self, x: isize, y: isize) -> bool {
         (0..self.len() as isize).contains(&y)
-            && (self.len() == 0 || (0..self[0].len() as isize).contains(&x))
+            && (self.is_empty() || (0..self[0].len() as isize).contains(&x))
     }
 
     fn ibu(&self, x: usize, y: usize) -> bool {
-        (0..self.len()).contains(&y) && (self.len() == 0 || (0..self[0].len()).contains(&x))
+        (0..self.len()).contains(&y) && (self.is_empty() || (0..self[0].len()).contains(&x))
     }
 }
 

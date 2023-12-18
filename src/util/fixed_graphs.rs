@@ -499,7 +499,7 @@ impl Div for Boolean {
 }
 impl DivAssign for Boolean {
     fn div_assign(&mut self, rhs: Self) {
-        *self = *self * rhs;
+        *self = *self / rhs;
     }
 }
 impl Zero for Boolean {
