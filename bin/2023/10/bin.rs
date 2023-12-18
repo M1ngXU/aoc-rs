@@ -1,6 +1,5 @@
 use std::time::Instant;
 
-use aoc_rs::util::Save;
 use itertools::Itertools;
 
 const TABLE: [((isize, isize), (isize, isize), bool); 13] = [
@@ -61,6 +60,7 @@ fn solve() {
     let (mut cx @ mut ox, mut cy @ mut oy) = (x as isize, y as isize);
     let mut closed_walk = vec![vec![0; s.len()]; s.len()];
     let mut len: usize = 0;
+    let mut fill: isize = 0;
     while {
         let c = s[cy as usize][cx as usize];
         let ((dx1, dy1), (dx2, dy2), i) = TABLE[c as usize];
@@ -74,28 +74,14 @@ fn solve() {
         }
         (ox, oy) = (oox, ooy);
         closed_walk[oy as usize][ox as usize] = i as usize + 1;
+        fill += (cx * oy - cy * ox) as isize;
         len += 1;
         cx != x as isize || cy != y as isize
     } {}
 
     println!("Part 1: {}", len.div_ceil(2));
 
-    print!("Part 2: ");
-    (0..s.len())
-        .map(|y| {
-            let mut inside = 0;
-            let mut outside = true;
-            for x in 0..s.len() {
-                match closed_walk[y as usize][x as usize] {
-                    2 => outside = !outside,
-                    0 if !outside => inside += 1,
-                    _ => {}
-                }
-            }
-            inside
-        })
-        .sum::<usize>()
-        .save();
+    println!("Part 2: {}", fill / 2 - len as isize / 2 + 1);
 }
 
 fn main() {
