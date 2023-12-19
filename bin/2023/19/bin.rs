@@ -3,32 +3,13 @@
 use aoc_rs::prelude::*;
 
 fn one() {
-    let p = parser!(id);
-    let (a, b): (Vec<&str>, Vec<&str>) = pi!(p)
-        .split_once("\n\n")
-        .map(|(a, b)| (a.split("\n").collect_vec(), b.split("\n").collect_vec()))
-        .unwrap();
-    let rules: HashMap<&str, (Vec<(&str, &str)>, &str)> = a
-        .into_iter()
-        .map(|x| {
-            x.split_once('{')
-                .map(|(name, r)| {
-                    (
-                        name,
-                        (
-                            r[..r.len() - 1]
-                                .split(",")
-                                .take(r.split(",").count() - 1)
-                                .map(|x| x.split_once(":").map(|(a, b)| (a, b)).unwrap())
-                                .collect_vec(),
-                            r.rsplit_once(",").unwrap().1.trim_end_matches('}'),
-                        ),
-                    )
-                })
-                .unwrap()
-        })
-        .collect::<HashMap<_, _>>();
-    let cube = HypercubeSet::new(vec![[1..=4000, 1..=4000, 1..=4000, 1..=4000]]);
+    let p = parser!(~"\n\n" > ((| ~"{" > id >> "{" (~"}" > (((| ({~">" > id ">"}{~"<" > id "<"}) pn >> ":" id)[","]) "," << id)))[LE]) >> LELE ((| "{" << (~"}" > ((| ({"x"}{"m"}{"a"}{"s"}) >> "=" pn)[","])))[LE]));
+    let (a, b): (
+        Vec<(&str, (Vec<((&str, &str), (isize, &str))>, &str))>,
+        Vec<Vec<(&str, isize)>>,
+    ) = pi!(p);
+    let rules = a.into_iter().collect::<HashMap<_, _>>();
+    let cube = HypercuboidSet::new(vec![[1..=4000, 1..=4000, 1..=4000, 1..=4000]]);
     let mut todo = vec![("in", cube)];
     let mut total = 0;
     while let Some((next, mut cube)) = todo.pop() {
@@ -40,21 +21,19 @@ fn one() {
             continue;
         }
         let (rules, other) = &rules[next];
-        for (rule, to) in rules {
-            let (var, num) = rule.split_once(['<', '>']).unwrap();
-            let num = num.parse::<i64>().unwrap();
+        for ((var, symbol), (num, to)) in rules {
             let mut next_cube = cube.clone();
             let mut ranges = vec![[1..=4000, 1..=4000, 1..=4000, 1..=4000]];
             let index = ["x", "m", "a", "s"]
                 .into_iter()
-                .position(|x| x == var)
+                .position(|x| &x == var)
                 .unwrap();
-            if rule.contains('<') {
+            if symbol == &"<" {
                 ranges[0][index] = 1..=num - 1;
             } else {
                 ranges[0][index] = num + 1..=4000;
             }
-            let ranges = HypercubeSet::new(ranges);
+            let ranges = HypercuboidSet::new(ranges);
             next_cube.intersect(&ranges);
             cube.set_minus(&ranges);
             todo.push((to, next_cube));
