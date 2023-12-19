@@ -6,6 +6,7 @@ pub mod gcdlcm;
 pub mod graphs;
 pub mod grid;
 pub mod helper_structs;
+pub mod hypercube_set;
 pub mod iter_cast;
 pub mod save;
 
@@ -17,5 +18,6 @@ pub use gcdlcm::*;
 pub use graphs::*;
 pub use grid::*;
 pub use helper_structs::*;
+pub use hypercube_set::*;
 pub use iter_cast::*;
 pub use save::*;
