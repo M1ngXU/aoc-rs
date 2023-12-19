@@ -14,73 +14,40 @@ fn comb(
             Vec<Range<i64>>,
             Vec<Range<i64>>,
         ),
-        i64,
+        (
+            Vec<Vec<Range<i64>>>,
+            Vec<Vec<Range<i64>>>,
+            Vec<Vec<Range<i64>>>,
+            Vec<Vec<Range<i64>>>,
+        ),
     >,
     cur: &'static str,
     xr: Vec<Range<i64>>,
     mr: Vec<Range<i64>>,
     ar: Vec<Range<i64>>,
     sr: Vec<Range<i64>>,
-    xdr: Vec<Range<i64>>,
-    mdr: Vec<Range<i64>>,
-    adr: Vec<Range<i64>>,
-    sdr: Vec<Range<i64>>,
 ) -> (
-    i64,
-    Vec<Range<i64>>,
-    Vec<Range<i64>>,
-    Vec<Range<i64>>,
-    Vec<Range<i64>>,
+    Vec<Vec<Range<i64>>>,
+    Vec<Vec<Range<i64>>>,
+    Vec<Vec<Range<i64>>>,
+    Vec<Vec<Range<i64>>>,
 ) {
-    if let Some(r) = memo.get(&(cur, xr.clone(), mr.clone(), ar.clone(), sr.clone())) {
-        return (*r, xr, mr, ar, sr);
+    if let Some((x, m, a, s)) = memo.get(&(cur, xr.clone(), mr.clone(), ar.clone(), sr.clone())) {
+        return (x.clone(), m.clone(), a.clone(), s.clone());
     }
     if cur == "R" {
-        return (0, xr, mr, ar, sr);
+        return (vec![], vec![], vec![], vec![]);
     }
     if cur == "A" {
-        return (
-            [xr.clone(), mr.clone(), ar.clone(), sr.clone()]
-                .into_iter()
-                .zip([xdr.clone(), mdr.clone(), adr.clone(), sdr.clone()])
-                .map(|(r, d)| {
-                    r.into_iter()
-                        .flat_map(|x| {
-                            d.iter().fold(vec![x], |x, rr| {
-                                x.into_iter()
-                                    .map(|x| x.setminus(rr))
-                                    .flat_map(|(a, b)| {
-                                        if a.is_some() {
-                                            vec![a.unwrap()]
-                                        } else if b.is_some() {
-                                            vec![b.unwrap()]
-                                        } else if a.is_some() && b.is_some() {
-                                            vec![a.unwrap(), b.unwrap()]
-                                        } else {
-                                            vec![]
-                                        }
-                                    })
-                                    .map(|r| r.from_incl()..r.to_incl() + 1)
-                                    .collect_vec()
-                            })
-                        })
-                        .map(|x| x.end - x.start)
-                        .s()
-                })
-                .p(),
-            xr,
-            mr,
-            ar,
-            sr,
-        );
+        return (vec![xr], vec![mr], vec![ar], vec![sr]);
     }
     let (rules_, other_to) = &rules[cur];
     let mut combs = 0;
     let mut other = [xr.clone(), mr.clone(), ar.clone(), sr.clone()];
-    let mut dupesx = vec![];
-    let mut dupesm = vec![];
-    let mut dupesa = vec![];
-    let mut dupess = vec![];
+    let mut dupesx: Vec<Vec<Range<i64>>> = vec![];
+    let mut dupesm: Vec<Vec<Range<i64>>> = vec![];
+    let mut dupesa: Vec<Vec<Range<i64>>> = vec![];
+    let mut dupess: Vec<Vec<Range<i64>>> = vec![];
     for (rule, to) in rules_ {
         if rule.contains('<') {
             let (var, num) = rule.split_once('<').unwrap();
@@ -102,7 +69,7 @@ fn comb(
                 .filter(|x| x.end - 1 >= num)
                 .map(|x| x.start.max(num)..x.end)
                 .collect_vec();
-            let (out, rangesx, rangesm, rangesa, rangess) = comb(
+            let (rangesx, rangesm, rangesa, rangess) = comb(
                 rules,
                 memo,
                 to,
@@ -110,18 +77,21 @@ fn comb(
                 ranges[1].clone(),
                 ranges[2].clone(),
                 ranges[3].clone(),
-                dupesx.clone(),
-                dupesm.clone(),
-                dupesa.clone(),
-                dupess.clone(),
             );
             let [x, m, a, s] = ranges;
-            memo.insert((to, x, m, a, s), out);
-            dupesx.push(rangesx);
-            dupesm.push(rangesm);
-            dupesa.push(rangesa);
-            dupess.push(rangess);
-            combs += out;
+            memo.insert(
+                (to, x, m, a, s),
+                (
+                    rangesx.clone(),
+                    rangesm.clone(),
+                    rangesa.clone(),
+                    rangess.clone(),
+                ),
+            );
+            dupesx.extend(rangesx);
+            dupesm.extend(rangesm);
+            dupesa.extend(rangesa);
+            dupess.extend(rangess);
         } else {
             let (var, num) = rule.split_once('>').unwrap();
             let num = num.parse::<i64>().unwrap();
@@ -142,7 +112,7 @@ fn comb(
                 .filter(|x| x.end > num + 1)
                 .map(|x| x.start.max(num + 1)..x.end)
                 .collect_vec();
-            let (out, rangesx, rangesm, rangesa, rangess) = comb(
+            let (rangesx, rangesm, rangesa, rangess) = comb(
                 rules,
                 memo,
                 to,
@@ -150,23 +120,26 @@ fn comb(
                 ranges[1].clone(),
                 ranges[2].clone(),
                 ranges[3].clone(),
-                dupesx.clone(),
-                dupesm.clone(),
-                dupesa.clone(),
-                dupess.clone(),
             );
             let [x, m, a, s] = ranges;
-            memo.insert((to, x, m, a, s), out);
-            dupesx.push(rangesx);
-            dupesm.push(rangesm);
-            dupesa.push(rangesa);
-            dupess.push(rangess);
-            combs += out;
+            memo.insert(
+                (to, x, m, a, s),
+                (
+                    rangesx.clone(),
+                    rangesm.clone(),
+                    rangesa.clone(),
+                    rangess.clone(),
+                ),
+            );
+            dupesx.extend(rangesx);
+            dupesm.extend(rangesm);
+            dupesa.extend(rangesa);
+            dupess.extend(rangess);
         }
     }
     {
         println!("{other:?}");
-        let (out, rangesx, rangesm, rangesa, rangess) = comb(
+        let (rangesx, rangesm, rangesa, rangess) = comb(
             rules,
             memo,
             other_to,
@@ -174,43 +147,60 @@ fn comb(
             other[1].clone(),
             other[2].clone(),
             other[3].clone(),
+        );
+        let [x, m, a, s] = other;
+        memo.insert(
+            (other_to, x, m, a, s),
+            (
+                rangesx.clone(),
+                rangesm.clone(),
+                rangesa.clone(),
+                rangess.clone(),
+            ),
+        );
+        dupesx.extend(rangesx);
+        dupesm.extend(rangesm);
+        dupesa.extend(rangesa);
+        dupess.extend(rangess);
+    }
+    // let [dx, dm, da, ds] = [dupesx, dupesm, dupesa, dupess].map(|dupes| {
+    //     dupes
+    //         .into_iter()
+    //         .permutations(2)
+    //         .flat_map(|v| {
+    //             let a = v[0].clone();
+    //             let b = v[1].clone();
+    //             a.into_iter()
+    //                 .flat_map(|r| {
+    //                     b.iter()
+    //                         .clone()
+    //                         .filter_map(|x| x.intersection(&r))
+    //                         .collect_vec()
+    //                 })
+    //                 .collect_vec()
+    //         })
+    //         .collect_vec()
+    // });
+    memo.insert(
+        (cur, xr, mr, ar, sr),
+        (
             dupesx.clone(),
             dupesm.clone(),
             dupesa.clone(),
             dupess.clone(),
-        );
-        dupesx.push(rangesx);
-        dupesm.push(rangesm);
-        dupesa.push(rangesa);
-        dupess.push(rangess);
-        combs += out;
-        let [x, m, a, s] = other;
-        memo.insert((other_to, x, m, a, s), out);
-    }
-    let [dx, dm, da, ds] = [dupesx, dupesm, dupesa, dupess].map(|dupes| {
-        dupes
-            .into_iter()
-            .permutations(2)
-            .flat_map(|v| {
-                let a = v[0].clone();
-                let b = v[1].clone();
-                a.into_iter()
-                    .flat_map(|r| {
-                        b.iter()
-                            .clone()
-                            .filter_map(|x| x.intersection(&r))
-                            .collect_vec()
-                    })
-                    .collect_vec()
-            })
-            .collect_vec()
-    });
-    memo.insert((cur, xr, mr, ar, sr), combs);
+        ),
+    );
     // let d = [dx, ]
     // let d = [dx, dm, da, ds]
     //     .map(|r| r.into_iter().map(|x| x.to_incl() - x.from_incl() + 1).s())
     //     .p();
-    (combs - d, vec![], vec![], vec![], vec![])
+
+    (
+        dupesx.clone(),
+        dupesm.clone(),
+        dupesa.clone(),
+        dupess.clone(),
+    )
 }
 
 fn one() {
@@ -284,7 +274,7 @@ fn one() {
     //     }
     // }
     // total.save();
-    comb(
+    let (x, m, a, s) = comb(
         &rules,
         &mut HashMap::new(),
         "in",
@@ -292,9 +282,56 @@ fn one() {
         vec![1..4001],
         vec![1..4001],
         vec![1..4001],
-    )
-    .0
-    .save();
+    );
+    let mut total = 0;
+    let mut seen: Vec<(
+        Vec<Range<i64>>,
+        Vec<Range<i64>>,
+        Vec<Range<i64>>,
+        Vec<Range<i64>>,
+    )> = Vec::new();
+    for i in 0..x.len() {
+        let x = x[i].clone();
+        let m = m[i].clone();
+        let a = a[i].clone();
+        let s = s[i].clone();
+        let mut d = 0;
+        for (xx, mm, aa, ss) in &seen {
+            let x = x
+                .iter()
+                .flat_map(|r| xx.iter().filter_map(|rr| r.intersection(rr)).collect_vec())
+                .collect_vec();
+            let m = m
+                .iter()
+                .flat_map(|r| mm.iter().filter_map(|rr| r.intersection(rr)).collect_vec())
+                .collect_vec();
+            let a = a
+                .iter()
+                .flat_map(|r| aa.iter().filter_map(|rr| r.intersection(rr)).collect_vec())
+                .collect_vec();
+            let s = s
+                .iter()
+                .flat_map(|r| ss.iter().filter_map(|rr| r.intersection(rr)).collect_vec())
+                .collect_vec();
+            d += ([x, m, a, s])
+                .map(|r| r.into_iter().flat_map(|r| r).collect::<HashSet<_>>().len())
+                .p();
+        }
+        seen.push((x.clone(), m.clone(), a.clone(), s.clone()));
+        // seen.iter().map(|(xx, mm, aa, ss)| {
+        //     x.iter()
+        //         .flat_map(|r| xx.iter().filter_map(|rr| r.intersection(rr)).collect_vec())
+        // });
+        total += ([x, m, a, s])
+            .map(|r| r.into_iter().flat_map(|r| r).collect::<HashSet<_>>().len())
+            .p() as i64
+            - d as i64;
+    }
+    total.save();
+    // dbg!([x, m, a, s])
+    //     .map(|r| r.into_iter().flat_map(|r| r).collect::<HashSet<_>>().len())
+    //     .p()
+    //     .save();
 }
 
 fn two() {}
