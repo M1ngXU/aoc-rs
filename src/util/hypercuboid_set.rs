@@ -92,20 +92,16 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum> HypercuboidSet<DIM, T> {
         T: Add<Output = T>,
         T: Sub<Output = T>,
         T: Mul<Output = T>,
-        T: Zero + One,
+        T: One + Zero,
     {
         self.ranges
             .iter()
             .map(|r| {
-                let p: T = r
-                    .iter()
+                r.iter()
                     .map(|r| r.ends_at().inc() - r.starts_at())
-                    .reduce(|a, b| a * b)
-                    .unwrap();
-                p
+                    .fold(T::one(), |a, b| a * b)
             })
-            .reduce(|a, b| a + b)
-            .unwrap()
+            .fold(T::zero(), |a, b| a + b)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -152,30 +148,34 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum> HypercuboidSet<DIM, T> {
                         continue;
                     }
                     let mut changed = vec![];
-                    for (i, current) in s.ranges.iter().enumerate().rev() {
+                    for (index, current) in s.ranges.iter().enumerate().rev() {
                         let mut diff = new
                             .iter()
                             .zip(&*current)
                             .enumerate()
                             .filter(|(_, (a, b))| a != b);
-                        if let Some((_, (a, b))) = diff.next() {
+                        if let Some((dimension, (a, b))) = diff.next() {
                             if diff.count() == 0 {
                                 if a.ends_at().inc() == b.starts_at() {
                                     let mut current = current.clone();
-                                    current[i] = a.starts_at()..=b.ends_at();
+                                    current[dimension] = a.starts_at()..=b.ends_at();
                                     other.ranges.push(current.clone());
-                                    changed.push(i);
+                                    changed.push(index);
                                 } else if b.ends_at().inc() == a.starts_at() {
                                     let mut current = current.clone();
-                                    current[i] = b.starts_at()..=a.ends_at();
+                                    current[dimension] = b.starts_at()..=a.ends_at();
                                     other.ranges.push(current.clone());
-                                    changed.push(i);
+                                    changed.push(index);
                                 }
                             }
                         }
                     }
-                    for c in changed {
-                        s.ranges.swap_remove(c);
+                    if changed.is_empty() {
+                        s.ranges.push(new);
+                    } else {
+                        for c in changed {
+                            s.ranges.swap_remove(c);
+                        }
                     }
                     other._set_minus(&s);
                 }
@@ -214,7 +214,6 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum> HypercuboidSet<DIM, T> {
         new_ranges
     }
 
-    // most likely wrong
     fn _set_minus(&mut self, other: &Self) {
         let mut other = other.clone();
         other._intersect(&self);
@@ -349,22 +348,29 @@ mod tests {
     #[test]
     fn test_normalize() {
         assert_eq!(
-            HypercuboidSet::new(vec![[0..=10, 10..=20, 10..=14], [0..=10, 10..=20, 10..=14]]),
-            HypercuboidSet::new(vec![[0..=10, 10..=20, 10..=14]])
+            HypercuboidSet::new(vec![[0..=10, 10..=14]]).ranges,
+            vec![[0..=10, 10..=14]]
+        );
+        assert_eq!(
+            HypercuboidSet::new(vec![[0..=10, 10..=20, 10..=14], [0..=10, 10..=20, 10..=14]])
+                .ranges,
+            vec![[0..=10, 10..=20, 10..=14]]
         );
         assert_eq!(
             HypercuboidSet::new(vec![
                 [0..=10, 10..=20, 10..=14],
                 [10..=15, 10..=20, 10..=14]
-            ]),
-            HypercuboidSet::new(vec![[0..=15, 10..=20, 10..=14]])
+            ])
+            .ranges,
+            vec![[0..=15, 10..=20, 10..=14]]
         );
         assert_eq!(
             HypercuboidSet::new(vec![
                 [0..=10, 10..=20, 10..=14],
                 [11..=15, 10..=20, 10..=14]
-            ]),
-            HypercuboidSet::new(vec![[0..=15, 10..=20, 10..=14]])
+            ])
+            .ranges,
+            vec![[0..=15, 10..=20, 10..=14]]
         );
     }
 
@@ -454,5 +460,19 @@ mod tests {
         let mut cut2 = cut.clone();
         cut2 |= &HypercuboidSet::new(vec![[5..=40]]);
         assert_eq!(cut2, expected);
+    }
+
+    #[test]
+    fn test_size_empty() {
+        let cut = HypercuboidSet::new(vec![[0..=10, 15..=30]]);
+        assert_eq!(cut.size(), 11 * 16);
+        assert!(!cut.is_empty());
+
+        let cut = HypercuboidSet::new(vec![[0..=10, 15..=30], [20..=30, -10..=0]]);
+        assert_eq!(cut.size(), 11 * 16 + 11 * 11);
+        assert!(!cut.is_empty());
+
+        assert!(HypercuboidSet::<4, i32>::default().is_empty());
+        assert_eq!(HypercuboidSet::<4, i32>::default().size(), 0);
     }
 }

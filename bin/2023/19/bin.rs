@@ -2,9 +2,9 @@
 
 use aoc_rs::prelude::*;
 
-fn one() {
+fn solve() {
     let p = parser!(~"\n\n" > ((| ~"{" > id >> "{" (~"}" > (((| ({~">" > id ">"}{~"<" > id "<"}) pn >> ":" id)[","]) "," << id)))[LE]) >> LELE ((| "{" << (~"}" > ((| ({"x"}{"m"}{"a"}{"s"}) >> "=" pn)[","])))[LE]));
-    let (a, b): (
+    let (a, _b): (
         Vec<(&str, (Vec<((&str, &str), (isize, &str))>, &str))>,
         Vec<Vec<(&str, isize)>>,
     ) = pi!(p);
@@ -34,8 +34,8 @@ fn one() {
                 ranges[0][index] = num + 1..=4000;
             }
             let ranges = HypercuboidSet::new(ranges);
-            next_cube.intersect(&ranges);
-            cube.set_minus(&ranges);
+            next_cube &= &ranges;
+            cube -= &ranges;
             todo.push((to, next_cube));
         }
         todo.push((other, cube));
@@ -43,11 +43,7 @@ fn one() {
     total.save();
 }
 
-fn two() {}
-
 fn main() {
-    print!("Part 1: ");
-    one();
     print!("Part 2: ");
-    two();
+    solve();
 }
