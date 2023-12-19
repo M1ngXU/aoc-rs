@@ -1,15 +1,16 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    ops::{Add, Mul, Sub},
+    ops::{
+        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Mul, Sub,
+        SubAssign,
+    },
 };
 
 use itertools::Itertools;
 use num::{One, Zero};
 use range_utils::{BasicNum, RangeUtil};
 use std::ops::RangeInclusive;
-
-use crate::itertools2::Itertools2;
 
 #[derive(Clone, Debug, Hash)]
 /// Object invariant: normalized, i.e. no overlapping/adjacent hypercuboids
@@ -30,7 +31,53 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum> PartialEq for HypercuboidSet<D
     }
 }
 impl<const DIM: usize, T: Ord + Clone + BasicNum> Eq for HypercuboidSet<DIM, T> {}
-impl<const DIM: usize, T: Ord + Clone + BasicNum + Debug + Hash> HypercuboidSet<DIM, T> {
+macro_rules! impl_arithmetic_ops {
+    ($trait:ident, $trait_assign:ident, $fn:ident, $fn_assign:ident, $internal:ident) => {
+        impl_arithmetic_ops!(@ mut $trait, $trait_assign, $fn, $fn_assign, $internal, HypercuboidSet<DIM, T>, HypercuboidSet<DIM, T>);
+        impl_arithmetic_ops!(@ $trait, $fn, $internal, HypercuboidSet<DIM, T>, &HypercuboidSet<DIM, T>);
+        impl_arithmetic_ops!(@ mut $trait, $trait_assign, $fn, $fn_assign, $internal, &HypercuboidSet<DIM, T>, HypercuboidSet<DIM, T>);
+        impl_arithmetic_ops!(@ $trait, $fn, $internal, &HypercuboidSet<DIM, T>, &HypercuboidSet<DIM, T>);
+    };
+    (@ $trait:ident, $fn:ident, $internal:ident, $rhs:ty, $lhs:ty) => {
+        impl<const DIM: usize, T: Ord + Clone + BasicNum> $trait<$rhs> for $lhs {
+            type Output = HypercuboidSet<DIM, T>;
+
+            fn $fn(self, rhs: $rhs) -> Self::Output {
+                let mut x = self.clone();
+                x.$internal(&rhs);
+                x
+            }
+        }
+    };
+    (@ mut $trait:ident, $trait_assign:ident, $fn:ident, $fn_assign:ident, $internal:ident, $rhs:ty, $lhs:ty) => {
+        impl<const DIM: usize, T: Ord + Clone + BasicNum> $trait<$rhs> for $lhs {
+            type Output = HypercuboidSet<DIM, T>;
+
+            fn $fn(mut self, rhs: $rhs) -> Self::Output {
+                self.$internal(&rhs);
+                self
+            }
+        }
+        impl<const DIM: usize, T: Ord + Clone + BasicNum> $trait_assign<$rhs> for $lhs {
+            fn $fn_assign(&mut self, rhs: $rhs) {
+                self.$internal(&rhs);
+            }
+        }
+    }
+}
+impl_arithmetic_ops!(Add, AddAssign, add, add_assign, union);
+impl_arithmetic_ops!(BitOr, BitOrAssign, bitor, bitor_assign, union);
+impl_arithmetic_ops!(Sub, SubAssign, sub, sub_assign, set_minus);
+impl_arithmetic_ops!(BitAnd, BitAndAssign, bitand, bitand_assign, intersect);
+impl_arithmetic_ops!(
+    BitXor,
+    BitXorAssign,
+    bitxor,
+    bitxor_assign,
+    symmetric_difference
+);
+
+impl<const DIM: usize, T: Ord + Clone + BasicNum> HypercuboidSet<DIM, T> {
     fn _new<R: RangeUtil<T>>(ranges: Vec<[R; DIM]>) -> Self {
         Self {
             ranges: ranges
@@ -61,120 +108,176 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum + Debug + Hash> HypercuboidSet<
             .unwrap()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.ranges.is_empty()
+    }
+
     pub fn new<R: RangeUtil<T>>(ranges: Vec<[R; DIM]>) -> Self {
         let mut s = Self::_new(ranges);
         s.normalize();
         s
     }
 
+    pub fn symmetric_difference(&mut self, other: &Self) {
+        let mut one = other.clone();
+        one.set_minus(&*self);
+        self.set_minus(other);
+        self.union(&one);
+    }
+
     /// Normalize all ranges, i.e. remove duplicated
     fn normalize(&mut self) {
-        println!("====={:?}", self.ranges);
         *self = self.ranges.iter().cloned().fold(
             Self::_new::<RangeInclusive<T>>(vec![]),
             |mut s, r| {
                 let mut other = Self::_new(vec![r]);
-                println!("other: {other:?}");
+                // other._set_minus(&s);
+                // println!("other af: {other:?}");
+                // s._union(&other);
+                // normalization(existing, new):
+                // - make new disjoint of existing (new -= existing)
+                // - if ranges are adjacent (all dimensions but one match, last dim is adjacent), merge
                 other._set_minus(&s);
-                println!("other af: {other:?}");
-                s._union(&other);
-                println!("s: {s:?}");
-                let mut changed;
-                loop {
-                    changed = false;
-                    let mut rem = vec![];
-                    for i in 0..s.ranges.len() {
-                        for j in 0..s.ranges.len() {
-                            if i != j
-                                && s.ranges[i]
-                                    .iter()
-                                    .zip(&s.ranges[j])
-                                    .all(|(a, b)| a.intersection(b) == Some(b.clone()))
-                            {
-                                rem.push(j);
-                                changed = true;
-                            }
-                        }
+                while let Some(new) = other.ranges.pop() {
+                    if s.ranges.iter().any(|r| {
+                        r.iter()
+                            .zip(&new)
+                            .all(|(a, b)| a.intersection(b).is_some_and(|x| &x == b))
+                    }) {
+                        continue;
                     }
-                    for i in rem.into_iter().sorted().rev().dedup() {
-                        s.ranges.remove(i);
+                    if let Some(a) = s.ranges.iter_mut().find(|r| {
+                        r.iter()
+                            .zip(&new)
+                            .all(|(a, b)| a.intersection(b).is_some_and(|x| &x == a))
+                    }) {
+                        *a = new;
+                        continue;
                     }
-                    let l = s.ranges.len();
-                    'outer: for i in 0..l {
-                        for j in 0..l {
-                            if i != j
-                                && s.ranges[i]
-                                    .iter()
-                                    .zip(&s.ranges[j])
-                                    .all(|(a, b)| a.intersects(b))
-                            {
-                                let mut a = Self::_new(vec![s.ranges[i].clone()]);
-                                let mut b = Self::_new(vec![s.ranges[j].clone()]);
-                                let mut intersection = a.clone();
-                                intersection.intersect(&b);
-                                a._set_minus(&intersection);
-                                b._set_minus(&intersection);
-                                s.ranges.extend(a.ranges);
-                                s.ranges.extend(b.ranges);
-                                s.ranges.extend(intersection.ranges);
-                                s.ranges.remove(i.max(j));
-                                s.ranges.remove(i.min(j));
-                                changed = true;
-                                break 'outer;
-                            }
-                        }
-                    }
-                    if !changed {
-                        break;
-                    }
-                }
-                loop {
-                    changed = false;
-
-                    let mut merge = vec![];
-                    'outer: for i in 0..s.ranges.len() {
-                        for j in 0..s.ranges.len() {
-                            if i != j {
-                                if s.ranges[i]
-                                    .iter()
-                                    .zip(&s.ranges[j])
-                                    .filter(|(a, b)| a == b)
-                                    .count()
-                                    == DIM - 1
-                                {
-                                    let (a, b) = s.ranges[i]
-                                        .iter()
-                                        .zip(&s.ranges[j])
-                                        .find(|(a, b)| a != b)
-                                        .unwrap();
-                                    if a.ends_at() == b.starts_at().dec() {
-                                        merge.push((
-                                            i,
-                                            j,
-                                            s.ranges[i]
-                                                .iter()
-                                                .zip(&s.ranges[j])
-                                                .position(|(a, b)| a != b)
-                                                .unwrap(),
-                                        ));
-                                        changed = true;
-                                        break 'outer;
-                                    }
+                    let mut changed = vec![];
+                    for (i, current) in s.ranges.iter().enumerate().rev() {
+                        let mut diff = new
+                            .iter()
+                            .zip(&*current)
+                            .enumerate()
+                            .filter(|(_, (a, b))| a != b);
+                        if let Some((_, (a, b))) = diff.next() {
+                            if diff.count() == 0 {
+                                if a.ends_at().inc() == b.starts_at() {
+                                    let mut current = current.clone();
+                                    current[i] = a.starts_at()..=b.ends_at();
+                                    other.ranges.push(current.clone());
+                                    changed.push(i);
+                                } else if b.ends_at().inc() == a.starts_at() {
+                                    let mut current = current.clone();
+                                    current[i] = b.starts_at()..=a.ends_at();
+                                    other.ranges.push(current.clone());
+                                    changed.push(i);
                                 }
                             }
                         }
                     }
-                    for (from, to, i) in merge.clone() {
-                        s.ranges[from][i] =
-                            s.ranges[from][i].starts_at()..=s.ranges[to][i].ends_at();
+                    for c in changed {
+                        s.ranges.swap_remove(c);
                     }
-                    for (_, to, _) in merge.into_iter().rev() {
-                        s.ranges.remove(to);
-                    }
-                    if !changed {
-                        break;
-                    }
+                    other._set_minus(&s);
                 }
+                // let mut changed;
+                // loop {
+                //     changed = false;
+                //     let mut rem = vec![];
+                //     for i in 0..s.ranges.len() {
+                //         for j in 0..s.ranges.len() {
+                //             if i != j
+                //                 && s.ranges[i]
+                //                     .iter()
+                //                     .zip(&s.ranges[j])
+                //                     .all(|(a, b)| a.intersection(b) == Some(b.clone()))
+                //             {
+                //                 rem.push(j);
+                //                 changed = true;
+                //             }
+                //         }
+                //     }
+                //     for i in rem.into_iter().sorted().rev().dedup() {
+                //         s.ranges.remove(i);
+                //     }
+                //     let l = s.ranges.len();
+                //     'outer: for i in 0..l {
+                //         for j in 0..l {
+                //             if i != j
+                //                 && s.ranges[i]
+                //                     .iter()
+                //                     .zip(&s.ranges[j])
+                //                     .all(|(a, b)| a.intersects(b))
+                //             {
+                //                 let mut a = Self::_new(vec![s.ranges[i].clone()]);
+                //                 let mut b = Self::_new(vec![s.ranges[j].clone()]);
+                //                 let mut intersection = a.clone();
+                //                 intersection.intersect(&b);
+                //                 a._set_minus(&intersection);
+                //                 b._set_minus(&intersection);
+                //                 s.ranges.extend(a.ranges);
+                //                 s.ranges.extend(b.ranges);
+                //                 s.ranges.extend(intersection.ranges);
+                //                 s.ranges.remove(i.max(j));
+                //                 s.ranges.remove(i.min(j));
+                //                 changed = true;
+                //                 break 'outer;
+                //             }
+                //         }
+                //     }
+                //     if !changed {
+                //         break;
+                //     }
+                // }
+                // loop {
+                //     changed = false;
+
+                //     let mut merge = vec![];
+                //     'outer: for i in 0..s.ranges.len() {
+                //         for j in 0..s.ranges.len() {
+                //             if i != j {
+                //                 if s.ranges[i]
+                //                     .iter()
+                //                     .zip(&s.ranges[j])
+                //                     .filter(|(a, b)| a == b)
+                //                     .count()
+                //                     == DIM - 1
+                //                 {
+                //                     let (a, b) = s.ranges[i]
+                //                         .iter()
+                //                         .zip(&s.ranges[j])
+                //                         .find(|(a, b)| a != b)
+                //                         .unwrap();
+                //                     if a.ends_at() == b.starts_at().dec() {
+                //                         merge.push((
+                //                             i,
+                //                             j,
+                //                             s.ranges[i]
+                //                                 .iter()
+                //                                 .zip(&s.ranges[j])
+                //                                 .position(|(a, b)| a != b)
+                //                                 .unwrap(),
+                //                         ));
+                //                         changed = true;
+                //                         break 'outer;
+                //                     }
+                //                 }
+                //             }
+                //         }
+                //     }
+                //     for (from, to, i) in merge.clone() {
+                //         s.ranges[from][i] =
+                //             s.ranges[from][i].starts_at()..=s.ranges[to][i].ends_at();
+                //     }
+                //     for (_, to, _) in merge.into_iter().rev() {
+                //         s.ranges.remove(to);
+                //     }
+                //     if !changed {
+                //         break;
+                //     }
+                // }
                 s
             },
         );
@@ -216,28 +319,26 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum + Debug + Hash> HypercuboidSet<
     fn _set_minus(&mut self, other: &Self) {
         let mut other = other.clone();
         other._intersect(&self);
-        println!("inter: {other:?}");
         if other.ranges.is_empty() {
             return;
         }
-        let mut new_ranges2 = vec![];
+        let mut blocks = vec![];
         for r in &self.ranges {
-            let mut new_ranges = vec![];
+            let mut block = vec![];
             for o in &other.ranges {
                 let mut o2 = Self::_new(vec![r.clone()]);
                 o2._intersect(&Self::_new(vec![o.clone()]));
                 // at most one range
                 assert!(o2.ranges.len() <= 1);
                 if let Some(o) = o2.ranges.get(0) {
-                    println!("{o:?}");
-                    let mut rrrr = vec![vec![]];
+                    let mut small_hypercuboids = vec![vec![]];
                     for i in 0..DIM {
                         let opts = [
                             r[i].starts_at()..=o[i].starts_at().dec(),
                             o[i].clone(),
                             o[i].ends_at().inc()..=r[i].ends_at(),
                         ];
-                        rrrr = rrrr
+                        small_hypercuboids = small_hypercuboids
                             .into_iter()
                             .cartesian_product(opts)
                             .map(|(old, new)| {
@@ -274,28 +375,33 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum + Debug + Hash> HypercuboidSet<
                         //             }
                         //         }
                     }
-                    println!("rrrrr: {rrrr:?}");
                     let nrr = Self::_new(
-                        rrrr.into_iter()
+                        small_hypercuboids
+                            .into_iter()
                             .filter(|x| x.iter().all(|x| !x.is_empty()))
                             .map(|r| {
-                                let x: [RangeInclusive<T>; DIM] = r.try_into().unwrap();
+                                let len = r.len();
+                                let x: [RangeInclusive<T>; DIM] =
+                                    r.try_into().unwrap_or_else(|_| {
+                                        panic!(
+                                            "Length not matching?? (dim=`{DIM}` vs recv=`{len}`)"
+                                        )
+                                    });
                                 x
                             })
                             .filter(|x| x != o)
                             .collect_vec(),
                     );
-                    println!("nrr: {nrr:?}");
-                    new_ranges.push(nrr);
+                    block.push(nrr);
                 } else {
-                    new_ranges.push(Self::_new(vec![r.clone()]));
+                    block.push(Self::_new(vec![r.clone()]));
                 }
             }
-            if new_ranges.len() <= 1 {
-                new_ranges2.extend(new_ranges);
+            if block.len() <= 1 {
+                blocks.extend(block);
             } else {
-                new_ranges2.push(
-                    new_ranges
+                blocks.push(
+                    block
                         .into_iter()
                         .reduce(|mut a, b| {
                             a._intersect(&b);
@@ -305,21 +411,16 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum + Debug + Hash> HypercuboidSet<
                 );
             };
         }
-        let new_ranges = new_ranges2;
-        println!("RANGES: {new_ranges:?}");
-        *self = if new_ranges.len() == 1 {
-            new_ranges.into_iter().next().unwrap()
-        } else if new_ranges.len() == 0 {
+        *self = if blocks.len() == 1 {
+            blocks.into_iter().next().unwrap()
+        } else if blocks.len() == 0 {
             Self::default()
         } else {
-            new_ranges.into_iter().fold(Self::default(), |mut a, b| {
+            blocks.into_iter().fold(Self::default(), |mut a, b| {
                 let mut o = other.clone();
                 o._intersect(&b);
                 if o.ranges.is_empty() {
                     a._union(&b);
-                    println!("sss: {b:?}");
-                } else {
-                    println!("Not add: {b:?}");
                 }
                 a
             })
@@ -331,7 +432,7 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum + Debug + Hash> HypercuboidSet<
         // normalizing should be useless
         let a = self.clone();
         self.normalize();
-        assert_eq!(a, *self);
+        assert!(a == *self, "Intersection required normalization??");
     }
 
     fn _intersect(&mut self, other: &Self) {
@@ -345,9 +446,15 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum + Debug + Hash> HypercuboidSet<
                     .map(move |r2| r1.iter().zip(r2.iter()).map(|(r1, r2)| r1.intersection(r2)))
             })
             .filter_map(|r| {
-                let mut r = r.collect_vec();
+                let r = r.collect_vec();
                 if r.iter().all(|r| r.is_some()) {
-                    Some(r.iter_mut().map(|r| r.take().unwrap()).cfsa())
+                    let r = r.into_iter().map(|r| r.unwrap()).collect_vec();
+
+                    let len = r.len();
+                    let x: [RangeInclusive<T>; DIM] = r.try_into().unwrap_or_else(|_| {
+                        panic!("Length not matching?? (dim=`{DIM}` vs recv=`{len}`)")
+                    });
+                    Some(x)
                 } else {
                     None
                 }
@@ -388,6 +495,14 @@ mod tests {
                 [11..=15, 10..=20, 10..=14]
             ]),
             HypercuboidSet::new(vec![[0..=15, 10..=20, 10..=14]])
+        );
+    }
+
+    #[test]
+    fn test_normalize_complex() {
+        assert_eq!(
+            HypercuboidSet::new(vec![[0..=10], [16..=20], [11..=15],]),
+            HypercuboidSet::new(vec![[0..=20]])
         );
     }
 
