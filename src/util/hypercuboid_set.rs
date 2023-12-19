@@ -131,9 +131,6 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum> HypercuboidSet<DIM, T> {
             Self::_new::<RangeInclusive<T>>(vec![]),
             |mut s, r| {
                 let mut other = Self::_new(vec![r]);
-                // other._set_minus(&s);
-                // println!("other af: {other:?}");
-                // s._union(&other);
                 // normalization(existing, new):
                 // - make new disjoint of existing (new -= existing)
                 // - if ranges are adjacent (all dimensions but one match, last dim is adjacent), merge
@@ -182,111 +179,13 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum> HypercuboidSet<DIM, T> {
                     }
                     other._set_minus(&s);
                 }
-                // let mut changed;
-                // loop {
-                //     changed = false;
-                //     let mut rem = vec![];
-                //     for i in 0..s.ranges.len() {
-                //         for j in 0..s.ranges.len() {
-                //             if i != j
-                //                 && s.ranges[i]
-                //                     .iter()
-                //                     .zip(&s.ranges[j])
-                //                     .all(|(a, b)| a.intersection(b) == Some(b.clone()))
-                //             {
-                //                 rem.push(j);
-                //                 changed = true;
-                //             }
-                //         }
-                //     }
-                //     for i in rem.into_iter().sorted().rev().dedup() {
-                //         s.ranges.remove(i);
-                //     }
-                //     let l = s.ranges.len();
-                //     'outer: for i in 0..l {
-                //         for j in 0..l {
-                //             if i != j
-                //                 && s.ranges[i]
-                //                     .iter()
-                //                     .zip(&s.ranges[j])
-                //                     .all(|(a, b)| a.intersects(b))
-                //             {
-                //                 let mut a = Self::_new(vec![s.ranges[i].clone()]);
-                //                 let mut b = Self::_new(vec![s.ranges[j].clone()]);
-                //                 let mut intersection = a.clone();
-                //                 intersection.intersect(&b);
-                //                 a._set_minus(&intersection);
-                //                 b._set_minus(&intersection);
-                //                 s.ranges.extend(a.ranges);
-                //                 s.ranges.extend(b.ranges);
-                //                 s.ranges.extend(intersection.ranges);
-                //                 s.ranges.remove(i.max(j));
-                //                 s.ranges.remove(i.min(j));
-                //                 changed = true;
-                //                 break 'outer;
-                //             }
-                //         }
-                //     }
-                //     if !changed {
-                //         break;
-                //     }
-                // }
-                // loop {
-                //     changed = false;
-
-                //     let mut merge = vec![];
-                //     'outer: for i in 0..s.ranges.len() {
-                //         for j in 0..s.ranges.len() {
-                //             if i != j {
-                //                 if s.ranges[i]
-                //                     .iter()
-                //                     .zip(&s.ranges[j])
-                //                     .filter(|(a, b)| a == b)
-                //                     .count()
-                //                     == DIM - 1
-                //                 {
-                //                     let (a, b) = s.ranges[i]
-                //                         .iter()
-                //                         .zip(&s.ranges[j])
-                //                         .find(|(a, b)| a != b)
-                //                         .unwrap();
-                //                     if a.ends_at() == b.starts_at().dec() {
-                //                         merge.push((
-                //                             i,
-                //                             j,
-                //                             s.ranges[i]
-                //                                 .iter()
-                //                                 .zip(&s.ranges[j])
-                //                                 .position(|(a, b)| a != b)
-                //                                 .unwrap(),
-                //                         ));
-                //                         changed = true;
-                //                         break 'outer;
-                //                     }
-                //                 }
-                //             }
-                //         }
-                //     }
-                //     for (from, to, i) in merge.clone() {
-                //         s.ranges[from][i] =
-                //             s.ranges[from][i].starts_at()..=s.ranges[to][i].ends_at();
-                //     }
-                //     for (_, to, _) in merge.into_iter().rev() {
-                //         s.ranges.remove(to);
-                //     }
-                //     if !changed {
-                //         break;
-                //     }
-                // }
                 s
             },
         );
     }
 
     pub fn set_minus(&mut self, other: &Self) {
-        println!("START");
         self._set_minus(other);
-        println!("EHERE");
         self.normalize();
     }
 
@@ -345,35 +244,6 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum> HypercuboidSet<DIM, T> {
                                 old.into_iter().chain(std::iter::once(new)).collect_vec()
                             })
                             .collect_vec();
-                        //         println!("{:?}|{:?}", r[i], o[i]);
-                        //         if r[i].intersects(&o[i]) {
-                        //             let (aa, bb) = r[i].setminus(&o[i]);
-                        //             println!("{aa:?}|{bb:?}");
-                        //             let mut nr = Self::default();
-                        //             if let Some(aa) = aa {
-                        //                 let mut r = r.clone();
-                        //                 r[i] = aa;
-                        //                 nr._union(&Self::_new(vec![r]));
-                        //             }
-                        //             if let Some(aa) = bb {
-                        //                 let mut r = r.clone();
-                        //                 r[i] = aa;
-                        //                 nr._union(&Self::_new(vec![r]));
-                        //             }
-                        //             println!("nr: {nr:?}");
-                        //             if i > 0 {
-                        //                 nrr._intersect(&nr);
-                        //             } else {
-                        //                 nrr._union(&nr);
-                        //             }
-                        //         } else {
-                        //             println!("r: {r:?}");
-                        //             if i > 0 {
-                        //                 nrr._intersect(&Self::_new(vec![r.clone()]));
-                        //             } else {
-                        //                 nrr._union(&Self::_new(vec![r.clone()]));
-                        //             }
-                        //         }
                     }
                     let nrr = Self::_new(
                         small_hypercuboids
@@ -507,26 +377,27 @@ mod tests {
     }
 
     #[test]
-    fn test_3d_intersection() {
-        let mut h = HypercuboidSet::new(vec![[0..=10, 0..=20, 0..=30]]);
-        h.intersect(&HypercuboidSet::new(vec![[5..=15, 5..=15, 5..=45]]));
-        assert_eq!(h, HypercuboidSet::new(vec![[5..=10, 5..=15, 5..=30]]));
+    fn test_intersection_3d() {
+        let mut cut = HypercuboidSet::new(vec![[0..=10, 0..=20, 0..=30]]);
+        cut.intersect(&HypercuboidSet::new(vec![[5..=15, 5..=15, 5..=45]]));
+        assert_eq!(cut, HypercuboidSet::new(vec![[5..=10, 5..=15, 5..=30]]));
     }
 
     #[test]
-    fn test_4d_intersection() {
-        let mut h = HypercuboidSet::new(vec![
+    fn test_intersection_4d() {
+        let mut cut = HypercuboidSet::new(vec![
             [0..=10, 0..=20, 0..=30, 10..=20],
             [12..=25, 30..=40, 31..=32, -5..=5],
         ]);
-        h.intersect(&HypercuboidSet::new(vec![[
-            0..=25,
-            10..=30,
-            25..=35,
-            4..=10,
-        ]]));
+        let expected = HypercuboidSet::new(vec![
+            [0..=10, 10..=20, 25..=30, 10..=10],
+            [12..=25, 30..=30, 31..=32, 4..=5],
+        ]);
+        let rhs = HypercuboidSet::new(vec![[0..=25, 10..=30, 25..=35, 4..=10]]);
+        assert_eq!(&cut & &rhs, expected);
+        cut &= rhs;
         assert_eq!(
-            h,
+            cut,
             HypercuboidSet::new(vec![
                 [0..=10, 10..=20, 25..=30, 10..=10],
                 [12..=25, 30..=30, 31..=32, 4..=5]
@@ -542,77 +413,46 @@ mod tests {
     }
 
     #[test]
-    fn test_set_minus_2d0() {
-        let mut h = HypercuboidSet::new(vec![[0..=10, 0..=20]]);
-        h.set_minus(&HypercuboidSet::new(vec![[0..=5, 0..=15]]));
-        assert_eq!(
-            h,
-            HypercuboidSet::new(vec![[6..=10, 0..=15], [0..=10, 16..=20]])
-        );
-        let mut h = HypercuboidSet::new(vec![[0..=10, 0..=20], [-20..=5, 30..=40]]);
-        h.set_minus(&HypercuboidSet::new(vec![
-            [0..=5, 0..=15],
-            [0..=5, 30..=40],
-        ]));
-        assert_eq!(
-            h,
-            HypercuboidSet::new(vec![
-                [6..=10, 0..=15],
-                [0..=10, 16..=20],
-                [-20..=-1, 30..=40]
-            ])
-        );
-    }
-
-    #[test]
-    fn test_set_minus_1d2() {
-        let mut cut = HypercuboidSet::new(vec![[5..=40]]);
-        cut.set_minus(&HypercuboidSet::new(vec![[0..=10], [20..=25]]));
-        assert_eq!(cut, HypercuboidSet::new(vec![[11..=19], [26..=40]]));
-    }
-
-    #[test]
-    fn test_set_minus_2d2() {
-        // let mut h = HypercuboidSet::new(vec![[0..=10, 0..=20]]);
-        // h.set_minus(&HypercuboidSet::new(vec![[0..=5, 0..=15]]));
-        // assert_eq!(h.ranges, vec![[6..=10, 0..=20], [0..=5, 16..=20]]);
-        let mut h = HypercuboidSet::new(vec![[0..=10, 0..=20], [-20..=5, 30..=40]]);
-        h.set_minus(&HypercuboidSet::new(vec![
-            [0..=5, 0..=15],
-            [0..=5, 30..=40],
-        ]));
-        assert_eq!(
-            h,
-            HypercuboidSet::new(vec![
-                [6..=10, 0..=15],
-                [0..=10, 16..=20],
-                [-20..=-1, 30..=40]
-            ])
-        );
-    }
-
-    #[test]
     fn test_set_minus_2d() {
-        let mut h = HypercuboidSet::new(vec![[0..=10, 0..=20], [-20..=5, 30..=40]]);
-        h.set_minus(&HypercuboidSet::new(vec![[5..=15, 5..=15]]));
+        let mut cut = HypercuboidSet::new(vec![[0..=10, 0..=20], [-20..=5, 30..=40]]);
+        let expected = HypercuboidSet::new(vec![
+            [0..=4, 0..=20],
+            [5..=10, 0..=4],
+            [5..=10, 16..=20],
+            [-20..=5, 30..=40],
+        ]);
+        let rhs = HypercuboidSet::new(vec![[5..=15, 5..=15]]);
+        assert_eq!(&cut - &rhs, expected);
+        cut -= rhs;
+        assert_eq!(cut, expected);
+
+        let mut cut = HypercuboidSet::new(vec![[0..=10, 0..=20], [-20..=5, 30..=40]]);
+        cut -= &HypercuboidSet::new(vec![[0..=5, 0..=15], [0..=5, 30..=40]]);
         assert_eq!(
-            h,
+            cut,
             HypercuboidSet::new(vec![
-                [0..=4, 0..=20],
-                [5..=10, 0..=4],
-                [5..=10, 16..=20],
-                [-20..=5, 30..=40]
+                [6..=10, 0..=15],
+                [0..=10, 16..=20],
+                [-20..=-1, 30..=40]
             ])
         );
     }
 
     #[test]
-    fn test_1d_union() {
-        // let mut h = HypercuboidSet::new::<RangeFull>(vec![]);
-        // h.union(&HypercuboidSet::new(vec![[5..=40]]));
-        // assert_eq!(h, HypercuboidSet::new(vec![[5..=40]]));
-        let mut h = HypercuboidSet::new(vec![[0..=10], [20..=25]]);
-        h.union(&HypercuboidSet::new(vec![[5..=40]]));
-        assert_eq!(h, HypercuboidSet::new(vec![[0..=40]]));
+    fn test_union_1d() {
+        let cut = HypercuboidSet::new(vec![[0..=10], [20..=25]]);
+        let expected = HypercuboidSet::new(vec![[0..=40]]);
+        let rhs = HypercuboidSet::new(vec![[5..=40]]);
+        assert_eq!(&cut | &rhs, expected);
+        assert_eq!(&cut + &rhs, expected);
+        let mut cut2 = cut.clone();
+        cut2.union(&HypercuboidSet::new(vec![[5..=40]]));
+        assert_eq!(cut2, expected);
+        let mut cut2 = cut.clone();
+        cut2 += &HypercuboidSet::new(vec![[5..=40]]);
+        assert_eq!(cut2, expected);
+        let mut cut2 = cut.clone();
+        cut2 |= &HypercuboidSet::new(vec![[5..=40]]);
+        assert_eq!(cut2, expected);
     }
 }
