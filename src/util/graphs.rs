@@ -91,6 +91,65 @@ where
         )
     })
 }
+/// Dijkstra's algorithm on a 2d grid with diagonal movement, each can have a different length
+pub fn dijkstraa2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize + Hash, T: Clone>(
+    grid: Vec<Vec<(C, T)>>,
+    start: (isize, isize),
+    start_cost: C,
+) -> HashMap<(isize, isize), C>
+where
+    for<'a> &'a C: Add<&'a C, Output = C>,
+{
+    _dijkstraa2d(grid, start, start_cost, true)
+}
+
+/// Dijkstra's algorithm on a 2d grid without diagonal movement, each can have a different length
+pub fn dijkstraa2<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize + Hash, T: Clone>(
+    grid: Vec<Vec<(C, T)>>,
+    start: (isize, isize),
+    start_cost: C,
+) -> HashMap<(isize, isize), C>
+where
+    for<'a> &'a C: Add<&'a C, Output = C>,
+{
+    _dijkstraa2d(grid, start, start_cost, false)
+}
+
+/// Dijsktra's algorithm on a 2d grid with diagonal movement (if `diagonal`), each row can have a different length
+fn _dijkstraa2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize + Hash, T: Clone>(
+    grid: Vec<Vec<(C, T)>>,
+    start: (isize, isize),
+    start_cost: C,
+    diagonal: bool,
+) -> HashMap<(isize, isize), C>
+where
+    for<'a> &'a C: Add<&'a C, Output = C>,
+{
+    dijkstraao((start_cost, start), |c, (x, y)| {
+        let mut adj = vec![];
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                if dx == 0 && dy == 0 || !diagonal && dx != 0 && dy != 0 {
+                    continue;
+                }
+                let nx = x + dx;
+                let ny = y + dy;
+                if nx < 0 || ny < 0 {
+                    continue;
+                }
+                if let Some(row) = grid.get(ny as usize) {
+                    if let Some((cost, _)) = row.get(nx as usize) {
+                        adj.push((c + cost, (nx, ny)));
+                    }
+                }
+            }
+        }
+        adj
+    })
+    .into_iter()
+    .map(|(c, (v, _))| (c, v))
+    .collect()
+}
 
 #[derive(Debug, Clone, Copy)]
 struct Vertex<C, V> {
