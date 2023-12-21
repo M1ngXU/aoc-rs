@@ -93,7 +93,7 @@ where
 }
 /// Dijkstra's algorithm on a 2d grid with diagonal movement, each can have a different length
 pub fn dijkstraa2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize + Hash, T: Clone>(
-    grid: Vec<Vec<(C, T)>>,
+    grid: &Vec<Vec<(C, T)>>,
     start: (isize, isize),
     start_cost: C,
 ) -> HashMap<(isize, isize), C>
@@ -105,7 +105,7 @@ where
 
 /// Dijkstra's algorithm on a 2d grid without diagonal movement, each can have a different length
 pub fn dijkstraa2<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize + Hash, T: Clone>(
-    grid: Vec<Vec<(C, T)>>,
+    grid: &Vec<Vec<(C, T)>>,
     start: (isize, isize),
     start_cost: C,
 ) -> HashMap<(isize, isize), C>
@@ -117,7 +117,7 @@ where
 
 /// Dijsktra's algorithm on a 2d grid with diagonal movement (if `diagonal`), each row can have a different length
 fn _dijkstraa2d<C: PartialEq + Eq + PartialOrd + Ord + Clone + FromIsize + Hash, T: Clone>(
-    grid: Vec<Vec<(C, T)>>,
+    grid: &Vec<Vec<(C, T)>>,
     start: (isize, isize),
     start_cost: C,
     diagonal: bool,
