@@ -19,11 +19,11 @@ fn solve() {
     assert_eq!(map[0].len(), map.len());
     assert_eq!(start.0, map.len() / 2);
     assert_eq!(start.0, start.1);
-    let mut todo: HashMap<(isize, isize), [u8; 5]> =
-        HashMap::from([((start.0 as isize, start.1 as isize), [0, 0, 0b00100, 0, 0])]);
+    let mut todo: HashMap<(isize, isize), u8> =
+        HashMap::from([((start.0 as isize, start.1 as isize), 0b_000_0_0_000)]);
     let mut possible = vec![];
-    for i in 1..=usize::MAX {
-        let mut new_todo: HashMap<(isize, isize), [u8; 5]> = HashMap::new();
+    for i in 1..=start.0 - 1 + map.len() {
+        let mut new_todo: HashMap<(isize, isize), u8> = HashMap::new();
         for ((nextx, nexty), count) in todo {
             for dx in -1..=1 {
                 for dy in -1..=1 {
@@ -39,16 +39,24 @@ fn solve() {
                         if !map[ny as usize][nx as usize] {
                             let mut cur = count;
                             if blockx == -1 {
-                                cur = cur.map(|x| x >> 1);
+                                if cur == 0 {
+                                    cur |= 0b_000_1_0_000;
+                                } else if cur & 0b_010_0_0_000 != 0 {
+                                    cur |= 0b_100_0_0_000;
+                                } else if cur & 0b_000_0_0_010 != 0 {
+                                    cur |= 0b_000_0_0_100;
+                                } else {
+                                    panic!();
+                                }
                             } else if blockx == 1 {
-                                cur = cur.map(|x| x << 1);
-                            }
-                            if blocky == 1 {
-                                cur[4] = 0;
-                                cur.rotate_right(1);
+                                cur |= 0b0100;
+                                // cur = cur.map(|x| x << 1);
+                            } else if blocky == 1 {
+                                cur |= 0b0010;
+                                // cur.rotate_right(1); // rightmost is 0
                             } else if blocky == -1 {
-                                cur[0] = 0;
-                                cur.rotate_left(1);
+                                cur |= 0b0001;
+                                // cur.rotate_left(1); // leftmost is 0
                             }
                             let x = new_todo.entry((nx, ny)).or_default();
                             *x = x.zp(cur).map(|(a, b)| a | b);
@@ -59,44 +67,18 @@ fn solve() {
         }
         todo = new_todo;
         if i == 64 {
-            println!(
-                "Part 1: {}",
-                todo.iter()
-                    .map(|(_, c)| c.into_iter().map(|x| x.count_ones() as usize).s())
-                    .s()
-            );
+            let p1 = todo.iter().map(|(_, c)| c.count_ones() as usize + 1).s();
+            println!("Part 1: {}", p1);
         }
-        if i % map.len() == start.0 {
-            possible.push(
-                todo.iter()
-                    .map(|(_, c)| c.into_iter().map(|x| x.count_ones() as usize).s())
-                    .s(),
-            );
-            if possible.len() == 3 {
-                break;
-            }
+        if i == start.0 || (i + 1) % map.len() == start.0 {
+            possible.push(todo.iter().map(|(_, c)| c.count_ones() as usize + 1).s());
         }
     }
-    // c = possible[0]
-    // ax^2 + bx + c
-    // a + b + c = possible[1]
-    // a = possible[1] - b - c
-    // 4a + 2b + c = possible[2]
-    // 2b = possible[2] - 4a - c
-    // 2b = possible[2] - 4(possible[1] - b - c) - c
-    // 2b = possible[2] - 4possible[1] + 4b + 4c - c
-    // 2b = possible[2] - 4possible[1] + 4b + 3c
-    // b = (possible[2] - 4possible[1] + 4b + 3c) / 2
-    // b = (possible[2] - 4possible[1] + 3c) / 2 + 2b
-    // b = -(possible[2] - 4possible[1] + 3c) / 2
-    // b = (-possible[2] + 4possible[1] - 3c) / 2
-    // b = (4possible[1] - possible[2] - 3c) / 2
-    // a = possible[1] - b - c
-    let c = possible[0];
-    let b = (4 * possible[1] - possible[2] - 3 * c) / 2;
-    let a = possible[1] - b - c;
+    let c = possible[1];
+    let a = (possible[2] - 2 * possible[0] + c) / 2;
+    let b = a + c - possible[0];
     let x = (C - start.0) / map.len();
-    (a * x * x + b * x + c).save();
+    println!("Part 2: {}", a * x * x + b * x + c);
 }
 
 fn main() {
