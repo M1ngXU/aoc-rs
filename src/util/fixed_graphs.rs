@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap, HashSet, VecDeque},
+    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
     fmt::Display,
     hash::Hash,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
@@ -13,7 +13,7 @@ use num::{One, Zero};
 #[derive(Debug, Clone)]
 /// Uses a linked hashmap for deterministic adjacency matrices.
 pub struct FixedGraph<V: Hash + Eq> {
-    adjacencies: LinkedHashMap<V, HashMap<V, isize>>,
+    pub adjacencies: LinkedHashMap<V, HashMap<V, isize>>,
 }
 impl<V: Hash + Eq + Clone> Default for FixedGraph<V> {
     fn default() -> Self {
@@ -166,11 +166,29 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
         let mut predecessors = HashMap::new();
         predecessors.insert(start.clone(), start.clone());
 
-        let mut queue = BTreeMap::new();
-        queue.insert(0, start.clone());
+        #[derive(Debug, Clone)]
+        struct OnlyFirst<V>(isize, V);
+        impl<V> PartialEq for OnlyFirst<V> {
+            fn eq(&self, other: &Self) -> bool {
+                self.0 == other.0
+            }
+        }
+        impl<V> Eq for OnlyFirst<V> {}
+        impl<V> PartialOrd for OnlyFirst<V> {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+        impl<V> Ord for OnlyFirst<V> {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.0.cmp(&other.0)
+            }
+        }
+        let mut queue = BinaryHeap::new();
+        queue.push(OnlyFirst(0, start.clone()));
 
-        while let Some((cost, current)) = queue.pop_first() {
-            if distances[&current] > cost {
+        while let Some(OnlyFirst(cost, current)) = queue.pop() {
+            if cost > distances[&current] {
                 continue;
             }
             for (to, weight) in &self.adjacencies[&current] {
@@ -180,7 +198,7 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
                 }
                 distances.insert(to.clone(), new_cost);
                 predecessors.insert(to.clone(), current.clone());
-                queue.insert(new_cost, to.clone());
+                queue.push(OnlyFirst(new_cost, to.clone()));
             }
         }
         VertexToOther {
@@ -560,11 +578,11 @@ mod tests {
         assert_eq!(vertex_to_other.path(&'A'), Some((0, vec!['A'])));
         assert_eq!(vertex_to_other.path(&'B'), Some((1, vec!['A', 'B'])));
         assert_eq!(vertex_to_other.path(&'C'), Some((2, vec!['A', 'C'])));
-        assert_eq!(vertex_to_other.path(&'D'), Some((3, vec!['A', 'B', 'D'])));
+        assert_eq!(vertex_to_other.path(&'D'), Some((3, vec!['A', 'C', 'D'])));
         assert_eq!(vertex_to_other.path(&'E'), Some((4, vec!['A', 'C', 'E'])));
         assert_eq!(
             vertex_to_other.path(&'F'),
-            Some((5, vec!['A', 'B', 'D', 'F']))
+            Some((5, vec!['A', 'C', 'E', 'F']))
         );
     }
 

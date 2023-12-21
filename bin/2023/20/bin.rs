@@ -169,7 +169,7 @@ fn one() {
     // }
     // panic!();
     // let mut last_on = HashMap::new();
-    panic!(
+    println!(
         "{}",
         [3761u64, 3797, 4079, 3919]
             .into_iter()
