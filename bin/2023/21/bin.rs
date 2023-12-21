@@ -15,6 +15,20 @@ fn solve() {
         .unwrap();
     let map = pi
         .into_iter()
+        .enumerate()
+        .map(|(y, c)| {
+            c.char_indices()
+                .map(|(x, c)| (if c == '#' { 99999 } else { 0 }, (x as isize, y as isize)))
+                .collect_vec()
+        })
+        .collect_vec();
+    dijkstraa2(map, (start.0 as isize, start.1 as isize), 0)
+        .into_iter()
+        .filter(|(_, c)| c < &99999)
+        .count()
+        .save();
+    let map = pi
+        .into_iter()
         .map(|c| c.chars().map(|c| c == '#').collect_vec())
         .collect_vec();
     const C: usize = 26501365;
