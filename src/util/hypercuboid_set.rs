@@ -304,6 +304,13 @@ impl<const DIM: usize, T: Ord + Clone + BasicNum> HypercuboidSet<DIM, T> {
         assert!(a == *self, "Intersection required normalization??");
     }
 
+    pub fn intersects(&self, other: &Self) -> bool {
+        self.ranges
+            .iter()
+            .cartesian_product(&other.ranges)
+            .any(|(a, b)| a.iter().zip(b).all(|(a, b)| a.intersects(b)))
+    }
+
     fn _intersect(&mut self, other: &Self) {
         self.ranges = self
             .ranges

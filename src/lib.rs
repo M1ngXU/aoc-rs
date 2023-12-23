@@ -8,7 +8,8 @@ pub mod prelude {
     pub use crate::util::*;
     pub use itertools::Itertools;
     pub use linked_hash_map::LinkedHashMap;
-    pub use ndarray::prelude::*;
+    #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
+    pub use nalgebra::*;
     // who uses `zero`/`one`/`abs`/`iter`/`clamp` submodule anyway
     #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
     pub use num::*;

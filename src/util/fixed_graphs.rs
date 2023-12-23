@@ -7,7 +7,7 @@ use std::{
 
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
-use ndarray::Array2;
+use nalgebra::{Dyn, OMatrix};
 use num::{One, Zero};
 
 #[derive(Debug, Clone)]
@@ -339,12 +339,12 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
         })
     }
 
-    pub fn matrix(&self) -> (Array2<Option<isize>>, HashMap<V, usize>, Vec<V>) {
+    pub fn matrix(&self) -> (OMatrix<Option<isize>, Dyn, Dyn>, HashMap<V, usize>, Vec<V>) {
         let n = self.adjacencies.len();
 
         let mut mapping_iv = Vec::with_capacity(n);
         let mut mapping_vi = HashMap::with_capacity(n);
-        let mut matrix = Array2::from_elem((n, n), None);
+        let mut matrix = OMatrix::<Option<isize>, Dyn, Dyn>::from_element(n, n, None);
         for (i, v) in self.adjacencies.keys().enumerate() {
             mapping_iv.push(v.clone());
             mapping_vi.insert(v.clone(), i);
@@ -553,6 +553,8 @@ impl Display for Boolean {
 
 #[cfg(test)]
 mod tests {
+    use nalgebra::Matrix4;
+
     use super::*;
 
     #[test]
@@ -714,7 +716,7 @@ mod tests {
         for (v, i) in &mapping_vi {
             assert_eq!(*v, mapping_iv[*i]);
         }
-        let mut expected = Array2::from_elem((4, 4), None);
+        let mut expected = Matrix4::from_element(None);
         let a = 0;
         let b = 1;
         let c = 3;

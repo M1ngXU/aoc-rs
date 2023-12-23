@@ -20,10 +20,7 @@ serde_json = "1.0.108"
 gcd = "2.3.0"
 linked-hash-map = "0.5.6"
 num = { version = "0.4.1", features = ["num-bigint", "rand", "serde"] }
-ndarray = { version = "0.15.6", features = [
-    "matrixmultiply-threading",
-    "rayon",
-] }
+nalgebra = "0.32.3"
 
 [features]
 ex = []
@@ -184,6 +181,14 @@ path = "bin/2023/20/bin.rs"
 [[bin]]
 name = "2321"
 path = "bin/2023/21/bin.rs"
+
+[[bin]]
+name = "2322"
+path = "bin/2023/22/bin.rs"
+
+[[bin]]
+name = "2323"
+path = "bin/2023/23/bin.rs"
 
 [[bin]]
 name = "cses01"

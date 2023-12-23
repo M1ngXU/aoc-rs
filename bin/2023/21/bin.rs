@@ -1,7 +1,5 @@
 #![feature(iter_repeat_n, iter_map_windows, iter_from_coroutine)]
 
-use std::time::Instant;
-
 use aoc_rs::prelude::*;
 
 fn solve() {

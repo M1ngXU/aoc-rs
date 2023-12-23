@@ -8,6 +8,7 @@ pub mod grid;
 pub mod helper_structs;
 pub mod hypercuboid_set;
 pub mod iter_cast;
+pub mod linalg2;
 pub mod save;
 
 pub use arrays::*;
@@ -20,4 +21,5 @@ pub use grid::*;
 pub use helper_structs::*;
 pub use hypercuboid_set::*;
 pub use iter_cast::*;
+pub use linalg2::*;
 pub use save::*;

@@ -17,7 +17,7 @@ mod prelude {
 use std::{fs::File, io::Write, path::Path};
 
 use itertools::Itertools;
-use ndarray::Array2;
+use nalgebra::{Dyn, OMatrix};
 use nom::error::{Error, ErrorKind};
 pub use prelude::*;
 
@@ -372,18 +372,19 @@ fn chars_as_str(i: I) -> impl Iterator<Item = I> {
     indices.into_iter().map(|(s, l)| &i[s..s + l])
 }
 
-pub type Grid<T> = Array2<T>;
+pub type Grid<T> = OMatrix<T, Dyn, Dyn>;
 
 /// Parses each character as a 2d grid (matrix)
 pub fn grd(i: I) -> IResult<I, Grid<char>> {
     let grid = sble(ch)(i)?.1;
     Ok((
         "",
-        Array2::from_shape_vec(
-            (grid.len(), grid[0].len()),
+        Grid::from_vec(
+            grid.len(),
+            grid[0].len(),
             grid.into_iter().flatten().collect(),
         )
-        .unwrap(),
+        .transpose(),
     ))
 }
 /// Parses each digit as a 2d grid (matrix)
@@ -391,11 +392,12 @@ pub fn grdd(i: I) -> IResult<I, Grid<isize>> {
     let grid = sble(pds)(i)?.1;
     Ok((
         "",
-        Array2::from_shape_vec(
-            (grid.len(), grid[0].len()),
+        Grid::from_vec(
+            grid.len(),
+            grid[0].len(),
             grid.into_iter().flatten().collect(),
         )
-        .unwrap(),
+        .transpose(),
     ))
 }
 
@@ -538,6 +540,8 @@ pub use consts::*;
 mod tests {
     // #![feature(trace_macros)]
     // trace_macros!(true);
+
+    use nalgebra::Matrix2;
 
     use super::*;
 
@@ -732,19 +736,7 @@ mod tests {
 
     #[test]
     fn test_grid() {
-        assert_eq!(
-            grd("12\n34"),
-            Ok((
-                "",
-                Array2::from_shape_vec((2, 2), vec!['1', '2', '3', '4']).unwrap()
-            ))
-        );
-        assert_eq!(
-            grdd("12\n34"),
-            Ok((
-                "",
-                Array2::from_shape_vec((2, 2), vec![1, 2, 3, 4]).unwrap()
-            ))
-        );
+        assert_eq!(Matrix2::new('1', '2', '3', '4'), grd("12\n34").p());
+        assert_eq!(Matrix2::new(1, 2, 3, 4), grdd("12\n34").p());
     }
 }
