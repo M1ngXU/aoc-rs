@@ -258,33 +258,33 @@ pub fn dijkstraa<
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
 ) -> HashMap<V, (C, V)> {
     let mut queue = BinaryHeap::new();
-    // let mut predecessor = HashMap::new();
+    let mut predecessor = HashMap::new();
     for (start_cost, start_vertex) in &starts {
-        // predecessor.insert(
-        //     start_vertex.clone(),
-        //     (start_cost.clone(), start_vertex.clone()),
-        // );
+        predecessor.insert(
+            start_vertex.clone(),
+            (start_cost.clone(), start_vertex.clone()),
+        );
         queue.push(Vertex {
             cost: start_cost.clone(),
             value: start_vertex.clone(),
         });
     }
     while let Some(next) = queue.pop() {
-        // if predecessor[&next.value].0 < next.cost {
-        //     continue;
-        // }
+        if predecessor[&next.value].0 < next.cost {
+            continue;
+        }
         let adj = adjacent(&next.cost, &next.value);
         for (cost, vertex) in adj {
-            // if let Some((c, v)) = predecessor.get_mut(&vertex) {
-            //     if &cost < c {
-            //         *c = cost.clone();
-            //         *v = next.value.clone();
-            //     } else {
-            //         continue;
-            //     }
-            // } else {
-            //     predecessor.insert(vertex.clone(), (cost.clone(), next.value.clone()));
-            // }
+            if let Some((c, v)) = predecessor.get_mut(&vertex) {
+                if &cost < c {
+                    *c = cost.clone();
+                    *v = next.value.clone();
+                } else {
+                    continue;
+                }
+            } else {
+                predecessor.insert(vertex.clone(), (cost.clone(), next.value.clone()));
+            }
             queue.push(Vertex {
                 cost,
                 value: vertex,
@@ -292,5 +292,5 @@ pub fn dijkstraa<
         }
     }
 
-    panic!()
+    predecessor
 }

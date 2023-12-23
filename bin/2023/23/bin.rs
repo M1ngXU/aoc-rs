@@ -157,29 +157,6 @@ fn solve() {
     });
     let best1 = best1.load(Ordering::Relaxed);
     let best2 = best2.load(Ordering::Relaxed);
-    // let mut i = 0;
-    // while let Some((nx, ny, c, seen)) = todo.pop() {
-    //     i += 1;
-    //     if (nx, ny) == (ex, ey) {
-    //         if c < 0 {
-    //             best2 = best2.max(-c);
-    //         } else {
-    //             best1 = best1.max(c);
-    //         }
-    //     } else {
-    //         for ((x, y), cc) in &segmented1.adjacencies[&(nx, ny)] {
-    //             if !seen.contains(&(*x, *y)) {
-    //                 let mut seen = seen.clone();
-    //                 seen.insert((nx, ny));
-    //                 let mut new_cost = if c < 0 { c - cc.abs() } else { c + cc.abs() };
-    //                 if cc < &0 && new_cost > 0 {
-    //                     new_cost = -new_cost;
-    //                 }
-    //                 todo.push((*x, *y, new_cost, seen));
-    //             }
-    //         }
-    //     }
-    // }
     println!("Part 1: {best1}");
     println!("Part 2: {best2}");
 }

@@ -181,7 +181,7 @@ mod tests {
         let mut this = Duration::ZERO;
         let mut other = Duration::ZERO;
         for _ in 0..100 {
-            let a = OMatrix::<f64, Dyn, Dyn>::new_random(5, 5);
+            let a = OMatrix::<f64, Dyn, Dyn>::new_random(10, 10);
             let cut = a.transpose() * &a;
             let start = std::time::Instant::now();
             let ed = cut.clone().symmetric_eigen();
