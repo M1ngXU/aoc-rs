@@ -20,7 +20,9 @@ serde_json = "1.0.108"
 gcd = "2.3.0"
 linked-hash-map = "0.5.6"
 num = { version = "0.4.1", features = ["num-bigint", "rand", "serde"] }
-nalgebra = "0.32.3"
+nalgebra = { version = "0.32.3", features = ["rand"] }
+rand = "0.8.5"
+rand_distr = "0.4.3"
 
 [features]
 ex = []

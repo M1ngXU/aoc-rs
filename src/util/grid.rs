@@ -4,6 +4,18 @@ use nalgebra::{
     ViewStorage, ViewStorageMut, U1,
 };
 
+pub const ADJ: [(isize, isize); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+pub const ADJD: [(isize, isize); 8] = [
+    (-1, 0),
+    (1, 0),
+    (0, -1),
+    (0, 1),
+    (-1, -1),
+    (-1, 1),
+    (1, -1),
+    (1, 1),
+];
+
 pub trait MatrixTools<T> {
     type Adjacent<'a>
     where

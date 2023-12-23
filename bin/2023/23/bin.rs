@@ -69,7 +69,7 @@ fn solve() {
     }
     for (cx, cy) in s.ii() {
         if graph.adjacencies.contains_key(&(cx, cy)) {
-            for (dx, dy) in [(-1, 0), (1, 0), (0, 1), (0, -1)] {
+            for (dx, dy) in ADJ {
                 let nx = cx as isize + dx;
                 let ny = cy as isize + dy;
                 if s.ibi(nx, ny) {
@@ -79,7 +79,8 @@ fn solve() {
                         graph.add_edge(
                             (cx, cy),
                             (nx, ny),
-                            if [('>', (1, 0)), ('v', (0, 1)), ('<', (-1, 0)), ('^', (0, -1))]
+                            if ['<', '>', '^', 'v']
+                                .zp(ADJ)
                                 .into_iter()
                                 .all(|(x, y)| x != s[cy][cx] || y == (dx, dy))
                             {
