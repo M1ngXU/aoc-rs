@@ -10,42 +10,39 @@ use rayon::ScopeFifo;
 
 fn try_all(
     scope: &ScopeFifo<'_>,
-    graph: Arc<FixedGraph<(usize, usize)>>,
-    nx: usize,
-    ny: usize,
-    ex: usize,
-    ey: usize,
-    c: isize,
-    seen: HashSet<(usize, usize)>,
+    graph: Arc<Vec<Vec<(usize, isize)>>>,
+    nc: usize,
+    ec: usize,
+    cost: isize,
+    seen: u64,
     best1: Arc<AtomicUsize>,
     best2: Arc<AtomicUsize>,
 ) {
-    if (nx, ny) == (ex, ey) {
-        if c < 0 {
-            best2.fetch_max((-c) as usize, Ordering::Relaxed);
+    if nc == ec {
+        if cost < 0 {
+            best2.fetch_max((-cost) as usize, Ordering::Relaxed);
         } else {
-            best1.fetch_max(c as usize, Ordering::Relaxed);
+            best1.fetch_max(cost as usize, Ordering::Relaxed);
         }
     } else {
-        for ((x, y), cc) in graph
-            .get_edges(&(nx, ny))
-            .unwrap()
-            .iter()
-            .map(|((x, y), c)| ((*x, *y), *c))
-        {
-            if !seen.contains(&(x, y)) {
-                let mut seen = seen.clone();
-                seen.insert((nx, ny));
-                let mut new_cost = if c < 0 { c - cc.abs() } else { c + cc.abs() };
+        for i in 0..graph[nc].len() {
+            let c = graph[nc][i].0;
+            let cc = graph[nc][i].1;
+            if seen & 1 << c == 0 {
+                let mut seen = seen;
+                seen |= 1 << c;
+                let mut new_cost = if cost < 0 {
+                    cost - cc.abs()
+                } else {
+                    cost + cc.abs()
+                };
                 if cc < 0 && new_cost > 0 {
                     new_cost = -new_cost;
                 }
                 let graph = graph.clone();
                 let best1 = best1.clone();
                 let best2 = best2.clone();
-                scope.spawn_fifo(move |s| {
-                    try_all(s, graph, x, y, ex, ey, new_cost, seen, best1, best2)
-                });
+                scope.spawn_fifo(move |s| try_all(s, graph, c, ec, new_cost, seen, best1, best2));
             }
         }
     }
@@ -94,10 +91,13 @@ fn solve() {
             }
         }
     }
+    let mut vertex_index = HashMap::new();
+    let mut counter = 1;
     let mut segmented = FixedGraph::new();
-    segmented.add_vertex((sx, sy));
-    let mut todo = vec![(sx, sy)];
-    while let Some((nx, ny)) = todo.pop() {
+    segmented.add_vertex((sx, sy, 0));
+    vertex_index.insert((sx, sy), 0);
+    let mut todo = vec![(sx, sy, 0)];
+    while let Some((nx, ny, nc)) = todo.pop() {
         for ((x, y), _) in graph.adjacencies[&(nx, ny)]
             .iter()
             .filter(|(_, z)| **z == 0)
@@ -126,34 +126,33 @@ fn solve() {
                 (ox, oy) = (oox, ooy);
                 count += 1;
             }
-            if !segmented.adjacencies.contains_key(&(cx, cy)) {
-                todo.push((cx, cy));
+            if !vertex_index.contains_key(&(cx, cy)) {
+                vertex_index.insert((cx, cy), counter);
+                todo.push((cx, cy, counter));
+                counter += 1;
             }
             if (nx, ny) != (cx, cy) {
                 segmented.add_edge(
-                    (nx, ny),
-                    (cx, cy),
+                    (nx, ny, nc),
+                    (cx, cy, vertex_index[&(cx, cy)]),
                     if only_part1 { 1 } else { -1 } * count as isize,
                 );
             }
         }
     }
+    let segmented_without_xy = segmented
+        .adjacencies
+        .iter()
+        .map(|((_, _, c), adj)| (*c, adj))
+        .sorted_by_key(|(c, _)| *c)
+        .map(|(_, adj)| adj.iter().map(|((_, _, c), w)| (*c, *w)).collect_vec())
+        .collect_vec();
     let best1 = Arc::new(AtomicUsize::new(0));
     let best2 = Arc::new(AtomicUsize::new(0));
-    let graph = Arc::new(segmented);
+    let ec = vertex_index[&(ex, ey)];
+    let graph = Arc::new(segmented_without_xy);
     rayon::scope_fifo(|s| {
-        try_all(
-            s,
-            graph,
-            sx,
-            sy,
-            ex,
-            ey,
-            0,
-            HashSet::new(),
-            best1.clone(),
-            best2.clone(),
-        );
+        try_all(s, graph, 0, ec, 0, 1, best1.clone(), best2.clone());
     });
     let best1 = best1.load(Ordering::Relaxed);
     let best2 = best2.load(Ordering::Relaxed);

@@ -3,53 +3,27 @@
 use aoc_rs::prelude::*;
 
 fn solve() {
-    let s = parser!((| id)[LE]);
-    let pi = pi!(s);
-    let start = pi
-        .iter()
-        .enumerate()
-        .find_map(|(i, r)| r.chars().position(|x| x == 'S').map(|x| (i, x)))
-        .unwrap();
-    let map = pi
-        .clone()
-        .into_iter()
-        .enumerate()
-        .map(|(y, c)| {
-            c.char_indices()
-                .map(|(x, c)| (if c == '#' { 99999 } else { 1 }, (x as isize, y as isize)))
-                .collect_vec()
-        })
-        .collect_vec();
-    let d = dijkstraa2(&map, (start.0 as isize, start.1 as isize), 0);
-    let ([d1, d0, d22], d21) = rayon::join(
-        || [64, 65, 195].map(|x| d.iter().filter(|(_, &c)| c % 2 == x % 2 && c <= x).count()),
-        || {
-            [0, 130]
-                .into_iter()
-                .cartesian_product([0, 130])
-                .map(|(x, y)| ((x, y), 63))
-                .chain(
-                    [(0, start.1), (130, start.1), (start.0, 0), (start.1, 130)]
-                        .map(|(x, y)| ((x as isize, y as isize), 129)),
-                )
-                .collect_vec()
-                .into_par_iter()
-                .map(|((x, y), max)| {
-                    dijkstraa2(&map, (x, y), 0)
-                        .into_iter()
-                        .filter(|(_, c)| c % 2 == max % 2 && c <= &max)
-                        .count()
-                })
-                .sum::<usize>()
-        },
+    #[cfg(feature = "ex")]
+    compile_error!("Example does not work.");
+    let pi = pi!(id);
+    let mut grid = parse_grid(
+        pi,
+        |_, _, c| c != '#',
+        |_, _, c| c == 'S',
+        |_, _, _| false,
+        false,
     );
-    println!("Part 1: {d0}");
-
-    let c = d0;
-    let a = (d21 + d22 - 2 * d1 + c) / 2;
-    let b = a + c - d1;
-    let x = (26501365 - start.0) / map.len();
-    println!("Part 2: {}", a * x * x + b * x + c);
+    grid.graph.grow(3, 1, grid.width - 1);
+    let dist = dijkstra::<_, _, isize>(&grid.graph, grid.start.unwrap().0, None, ec);
+    let [y64, y65, y195] =
+        [64, 65, 195].map(|c| dist.values().filter(|&&x| x <= c && x % 2 == c % 2).count());
+    println!("Part 1: {}", y64);
+    let lhs = Matrix3::new(4, -2, 1, 1, -1, 1, 0, 0, 1).map(|x| x as f64);
+    let rhs = Vector3::new(y195, y64, y65).map(|x| x as f64);
+    let coef = lhs.full_piv_lu().solve(&rhs).unwrap();
+    let x = ((26501365 - grid.start.unwrap().1) / grid.width) as f64;
+    let p2 = x * x * coef[0] + x * coef[1] + coef[2];
+    println!("Part 2: {p2}");
 }
 
 fn main() {

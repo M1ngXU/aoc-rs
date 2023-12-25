@@ -1,14 +1,199 @@
 use std::{
     collections::{BinaryHeap, HashMap, HashSet, VecDeque},
-    fmt::Display,
+    fmt::{Debug, Display},
     hash::Hash,
+    io::Write,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
+    process::{Command, Stdio},
 };
 
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use nalgebra::{Dyn, OMatrix};
 use num::{One, Zero};
+use petgraph::{
+    dot::Dot,
+    graph::{EdgeIndex, EdgeReference, NodeIndex},
+    visit::{EdgeRef, GraphProp, IntoEdgeReferences, IntoNodeReferences, NodeIndexable},
+    EdgeType, Graph, Undirected,
+};
+use rand::{seq::SliceRandom, thread_rng};
+
+/// The edge cost, rustworkx sometimes needs this mapping
+pub fn ec<T: Copy>(e: EdgeReference<T>) -> T {
+    *e.weight()
+}
+
+pub trait GrowFactor {
+    fn x(&self) -> usize;
+    fn y(&self) -> usize;
+}
+impl GrowFactor for usize {
+    fn x(&self) -> usize {
+        *self
+    }
+    fn y(&self) -> usize {
+        *self
+    }
+}
+impl GrowFactor for (usize, usize) {
+    fn x(&self) -> usize {
+        self.0
+    }
+    fn y(&self) -> usize {
+        self.1
+    }
+}
+
+pub trait Grow {
+    fn grow(&mut self, n: impl GrowFactor, w: isize, max: impl GrowFactor);
+}
+impl<T: Clone, D: EdgeType> Grow for Graph<(usize, usize, T), isize, D> {
+    fn grow(&mut self, n: impl GrowFactor, w: isize, max: impl GrowFactor) {
+        let (sx, sy) = (n.x(), n.y());
+        let (maxx, maxy) = (max.x(), max.y());
+        assert_eq!(sx, sy, "Only square grids are supported");
+        assert!(sx % 2 == 1, "Only odd sizes are supported");
+        assert!(!self.is_directed(), "Only undirected graphs are supported");
+        let mut new = vec![HashMap::new(); sx * sy];
+        let nodes = self.node_indices().collect_vec();
+        let refs = self
+            .node_references()
+            .map(|(i, x)| (i, x.clone()))
+            .collect_vec();
+        for (i, w) in &refs {
+            for j in 0..sx * sy {
+                if j == (sx * sy) / 2 {
+                    new[j].insert(*i, *i);
+                } else {
+                    new[j].insert(*i, self.add_node(w.clone()));
+                }
+            }
+        }
+        for i in nodes {
+            for j in 0..sx * sy {
+                for (to, w) in self
+                    .edges(i)
+                    .map(|x| (x.target(), *x.weight()))
+                    .collect_vec()
+                {
+                    if j != (sx * sy) / 2 {
+                        self.update_edge(new[j][&i], new[j][&to], w);
+                    }
+                }
+            }
+        }
+        let mut added = 0;
+        for x in 0..=maxx {
+            for (y, to_y) in [(0, maxy), (maxy, 0)] {
+                if let Some((idx_from, _)) = refs.iter().find(|(_, n)| n.0 == x && n.1 == y) {
+                    let to_x = x;
+                    if let Some((idx_to, _)) = refs.iter().find(|(_, n)| n.0 == to_x && n.1 == to_y)
+                    {
+                        for gy in 0..sy {
+                            for gx in 0..sx {
+                                if y == 0 && gy > 0 || y != 0 && gy < sy - 1 {
+                                    let j = gy * sx + gx;
+                                    let j2 = if y == 0 { gy - 1 } else { gy + 1 } * sx + gx;
+                                    self.update_edge(new[j][&idx_from], new[j2][&idx_to], w);
+                                    added += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        for y in 0..=maxy {
+            for (x, to_x) in [(0, maxx), (maxx, 0)] {
+                if let Some((idx_from, _)) = refs.iter().find(|(_, n)| n.0 == x && n.1 == y) {
+                    let to_y = y;
+                    if let Some((idx_to, _)) = refs.iter().find(|(_, n)| n.0 == to_x && n.1 == to_y)
+                    {
+                        for gy in 0..sy {
+                            for gx in 0..sx {
+                                if x == 0 && gx > 0 || x != 0 && gx < sx - 1 {
+                                    let j = gy * sx + gx;
+                                    let j2 = gy * sx + if x == 0 { gx - 1 } else { gx + 1 };
+                                    self.update_edge(new[j][&idx_from], new[j2][&idx_to], w);
+                                    added += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        println!("{added}");
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Grid {
+    pub graph: Graph<(usize, usize, char), isize, Undirected>,
+    pub width: usize,
+    pub height: usize,
+    pub start: Option<(NodeIndex, usize, usize)>,
+    pub end: Option<(NodeIndex, usize, usize)>,
+    pub vertex_map: HashMap<(usize, usize), NodeIndex>,
+    pub edge_map: HashMap<((usize, usize), (usize, usize)), EdgeIndex>,
+}
+
+pub fn parse_grid(
+    s: &str,
+    is_walkable: impl Fn(usize, usize, char) -> bool,
+    is_start: impl Fn(usize, usize, char) -> bool,
+    is_end: impl Fn(usize, usize, char) -> bool,
+    diagonal: bool,
+) -> Grid {
+    let mut graph = Graph::new_undirected();
+    let mut vertex_mapping = HashMap::new();
+    let mut edge_mapping = HashMap::new();
+    let mut start = None;
+    let mut end = None;
+    let mut w = 0;
+    let mut h = 0;
+    for (y, line) in s.trim().lines().enumerate() {
+        h = y;
+        for (x, c) in line.char_indices() {
+            w = x;
+            if is_walkable(x, y, c) {
+                let idx = graph.add_node((x, y, c));
+                if is_start(x, y, c) {
+                    start = Some((idx, x, y));
+                }
+                if is_end(x, y, c) {
+                    end = Some((idx, x, y));
+                }
+                vertex_mapping.insert((x, y), idx);
+                if x > 0 {
+                    if let Some(n) = vertex_mapping.get(&(x - 1, y)) {
+                        edge_mapping.insert(((x - 1, y), (x, y)), graph.add_edge(*n, idx, 1));
+                    }
+                }
+                if diagonal && x > 0 && y > 0 {
+                    if let Some(n) = vertex_mapping.get(&(x - 1, y - 1)) {
+                        edge_mapping.insert(((x - 1, y - 1), (x, y)), graph.add_edge(*n, idx, 1));
+                    }
+                }
+                if y > 0 {
+                    if let Some(n) = vertex_mapping.get(&(x, y - 1)) {
+                        edge_mapping.insert(((x, y - 1), (x, y)), graph.add_edge(*n, idx, 1));
+                    }
+                }
+            }
+        }
+    }
+    Grid {
+        graph,
+        width: w + 1,
+        height: h + 1,
+        start,
+        end,
+        vertex_map: vertex_mapping,
+        edge_map: edge_mapping,
+    }
+}
 
 #[derive(Debug, Clone)]
 /// Uses a linked hashmap for deterministic adjacency matrices.
@@ -68,7 +253,28 @@ impl<V: Hash + Eq + Clone> FixedGraph<V> {
         self.adjacencies.keys().cloned().collect()
     }
 }
-
+pub trait Render {
+    fn render(self, name: &str) -> std::io::Result<()>;
+}
+impl<G: IntoEdgeReferences + IntoNodeReferences + NodeIndexable + GraphProp> Render for G
+where
+    <Self as petgraph::visit::Data>::EdgeWeight: Debug,
+    <Self as petgraph::visit::Data>::NodeWeight: Debug,
+{
+    fn render(self, name: &str) -> std::io::Result<()> {
+        let s = format!("{:?}", Dot::new(self));
+        let mut dot = Command::new("dot")
+            .args(&["-Tsvg", "-o", name])
+            .stdin(Stdio::piped())
+            .spawn()?;
+        dot.stdin.as_mut().unwrap().write_all(s.as_bytes())?;
+        let status = dot.wait()?;
+        if !status.success() {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "dot failed"));
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VertexToOther<V: Eq + Hash + Clone> {
     pub from: V,
@@ -147,8 +353,73 @@ impl<V: Eq + Hash + Clone> AllToAll<V> {
             .collect()
     }
 }
-
+struct UnionFind<T: Hash + Eq + Clone> {
+    representants: HashMap<T, T>,
+    members: HashMap<T, Vec<T>>,
+}
+impl<T: Hash + Eq + Clone> UnionFind<T> {
+    fn new(v: Vec<T>) -> Self {
+        let mut representants = HashMap::new();
+        let mut members = HashMap::new();
+        for x in v {
+            representants.insert(x.clone(), x.clone());
+            members.insert(x.clone(), vec![x]);
+        }
+        Self {
+            representants,
+            members,
+        }
+    }
+    fn same(&self, a: &T, b: &T) -> bool {
+        self.representants[a] == self.representants[b]
+    }
+    fn union(&mut self, a: &T, b: &T) {
+        let a = self.representants[a].clone();
+        let b = self.representants[b].clone();
+        if a == b {
+            return;
+        }
+        let (a, b) = if self.members[&a].len() < self.members[&b].len() {
+            (b, a)
+        } else {
+            (a, b)
+        };
+        for x in self.members.remove(&b).unwrap() {
+            self.representants.insert(x.clone(), a.clone());
+            self.members.get_mut(&a).unwrap().push(x);
+        }
+    }
+}
 impl<V: Hash + Eq + Clone> FixedGraph<V> {
+    pub fn mst(&self, shuffle: bool) -> Option<FixedGraph<V>> {
+        let mut graph = Self::default();
+        let mut added = 0;
+        let mut edges = self
+            .adjacencies
+            .iter()
+            .flat_map(|(from, edges)| {
+                edges
+                    .iter()
+                    .map(|(to, weight)| (from.clone(), to.clone(), weight.clone()))
+            })
+            .collect_vec();
+        if shuffle {
+            edges.shuffle(&mut thread_rng());
+        }
+        edges.sort_unstable_by_key(|(_, _, w)| -*w);
+        let mut uf = UnionFind::new(self.adjacencies.keys().cloned().collect());
+        while added != self.adjacencies.len() - 1 {
+            let (from, to, _) = edges.pop()?;
+            if uf.same(&from, &to) {
+                continue;
+            }
+            uf.union(&from, &to);
+            let w = self.adjacencies[&from][&to];
+            graph.add_edge(from, to, w);
+            added += 1;
+        }
+        Some(graph)
+    }
     pub fn dijkstra(&self, start: &V) -> VertexToOther<V> {
         debug_assert!(
             self.adjacencies

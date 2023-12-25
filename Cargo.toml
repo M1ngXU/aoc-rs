@@ -23,6 +23,9 @@ num = { version = "0.4.1", features = ["num-bigint", "rand", "serde"] }
 nalgebra = { version = "0.32.3", features = ["rand"] }
 rand = "0.8.5"
 rand_distr = "0.4.3"
+rustworkx-core = "0.13.2"
+hashbrown = { version = "0.14.3", features = ["rayon", "nightly", "serde"] }
+petgraph = "0.6.4"
 
 [features]
 ex = []
@@ -191,6 +194,14 @@ path = "bin/2023/22/bin.rs"
 [[bin]]
 name = "2323"
 path = "bin/2023/23/bin.rs"
+
+[[bin]]
+name = "2324"
+path = "bin/2023/24/bin.rs"
+
+[[bin]]
+name = "2325"
+path = "bin/2023/25/bin.rs"
 
 [[bin]]
 name = "cses01"

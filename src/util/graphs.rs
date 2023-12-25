@@ -180,10 +180,13 @@ pub fn dijkstrao<C: PartialEq + Eq + PartialOrd + Ord + Clone, V: PartialEq + Eq
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
     is_destination: impl Fn(&C, &V) -> bool,
 ) -> Option<(C, Vec<(C, V)>)> {
-    dijkstra(vec![(start_cost, start_vertex)], adjacent, is_destination)
+    dijkstra_dyn(vec![(start_cost, start_vertex)], adjacent, is_destination)
 }
 /// adjacent must be consistent
-pub fn dijkstra<C: PartialEq + Eq + PartialOrd + Ord + Clone, V: PartialEq + Eq + Hash + Clone>(
+pub fn dijkstra_dyn<
+    C: PartialEq + Eq + PartialOrd + Ord + Clone,
+    V: PartialEq + Eq + Hash + Clone,
+>(
     starts: Vec<(C, V)>,
     adjacent: impl Fn(&C, &V) -> Vec<(C, V)>,
     is_destination: impl Fn(&C, &V) -> bool,
