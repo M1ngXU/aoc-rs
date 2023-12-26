@@ -372,14 +372,14 @@ fn chars_as_str(i: I) -> impl Iterator<Item = I> {
     indices.into_iter().map(|(s, l)| &i[s..s + l])
 }
 
-pub type Grid<T> = OMatrix<T, Dyn, Dyn>;
+pub type GridMatrix<T> = OMatrix<T, Dyn, Dyn>;
 
 /// Parses each character as a 2d grid (matrix)
-pub fn grd(i: I) -> IResult<I, Grid<char>> {
+pub fn grd(i: I) -> IResult<I, GridMatrix<char>> {
     let grid = sble(ch)(i)?.1;
     Ok((
         "",
-        Grid::from_vec(
+        GridMatrix::from_vec(
             grid.len(),
             grid[0].len(),
             grid.into_iter().flatten().collect(),
@@ -388,11 +388,11 @@ pub fn grd(i: I) -> IResult<I, Grid<char>> {
     ))
 }
 /// Parses each digit as a 2d grid (matrix)
-pub fn grdd(i: I) -> IResult<I, Grid<isize>> {
+pub fn grdd(i: I) -> IResult<I, GridMatrix<isize>> {
     let grid = sble(pds)(i)?.1;
     Ok((
         "",
-        Grid::from_vec(
+        GridMatrix::from_vec(
             grid.len(),
             grid[0].len(),
             grid.into_iter().flatten().collect(),

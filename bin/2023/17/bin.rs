@@ -8,7 +8,7 @@ fn one() {
 
     let h = s.len();
     let w = s[0].len();
-    dijkstra(
+    dijkstra_dyn(
         vec![(0, (0, 0, 2, 0, 1)), (0, (0, 0, 2, 1, 0))],
         |cost, (x, y, max, dx, dy)| {
             let l90 = (-dy, -dx);
@@ -45,7 +45,7 @@ fn two() {
 
     let h = s.len();
     let w = s[0].len();
-    dijkstra(
+    dijkstra_dyn(
         vec![(0, (0, 0, 9, 3, 0, 1)), (0, (0, 0, 9, 3, 1, 0))],
         |cost, (x, y, max, min, dx, dy)| {
             let l90 = (-dy, -dx);

@@ -45,6 +45,31 @@ fn one() {
 fn two() {
     let p = parser!((| pns)[LE]);
     let s = pi!(p);
+    let ctx = &Context::new(&Config::default());
+    let mut solver = Solver::new(ctx);
+    let (x, y, z, dx, dy, dz) = (
+        ast::Int::new_const(ctx, "x"),
+        ast::Int::new_const(ctx, "y"),
+        ast::Int::new_const(ctx, "z"),
+        ast::Int::new_const(ctx, "dx"),
+        ast::Int::new_const(ctx, "dy"),
+        ast::Int::new_const(ctx, "dz"),
+    );
+    for (i, v) in s.iter().enumerate() {
+        let ti = ast::Int::new_const(ctx, format!("t_{i}"));
+        let vars: [isize; 6] = v.iter().copied().cfsa();
+        let vars_r = vars.map(|x| ast::Int::from_i64(ctx, x as i64));
+        solver += (&x + &dx * &ti)._eq(&(&vars_r[0] + &vars_r[3] * &ti));
+        solver += (&y + &dy * &ti)._eq(&(&vars_r[1] + &vars_r[4] * &ti));
+        solver += (&z + &dz * &ti)._eq(&(&vars_r[2] + &vars_r[5] * &ti));
+        solver += ti.ge(&ast::Int::from_i64(ctx, 0));
+    }
+    assert_eq!(solver.check(), SatResult::Sat); // MUST CALL "check"
+    let model = solver.get_model().unwrap();
+    [x, y, z]
+        .map(|v| model.get_const_interp(&v).unwrap().as_i64().unwrap())
+        .s()
+        .save();
 }
 
 fn main() {

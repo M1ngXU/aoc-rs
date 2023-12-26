@@ -54,7 +54,7 @@ fn one() {
         .collect_vec();
     let best = s.iter().map(|(v, _, _)| *v).s() as i32;
     const END: isize = 26;
-    dijkstra(
+    dijkstra_dyn(
         s.iter()
             .enumerate()
             .cartesian_product(s.iter().enumerate())

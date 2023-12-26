@@ -9,8 +9,10 @@ pub mod prelude {
     pub use hashbrown::*;
     pub use itertools::Itertools;
     pub use linked_hash_map::LinkedHashMap;
+    pub use nalgebra::sparse::*;
     #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
     pub use nalgebra::*;
+    pub use petgraph::{algo::*, data::*, graph::*, *};
     pub use rustworkx_core::{
         centrality::*,
         coloring::*,
@@ -23,9 +25,6 @@ pub mod prelude {
         dictmap::*,
         distancemap::*,
         generators::*,
-        petgraph::algo::*,
-        petgraph::prelude::*,
-        petgraph::*,
         shortest_path::{
             astar, bellman_ford as bellman_ford2, dijkstra as dijkstra2, k_shortest_path,
             negative_cycle_finder,
@@ -34,7 +33,8 @@ pub mod prelude {
         traversal::*,
         utils::*,
     };
-    // pub use z3::*;
+    pub use z3::ast::{Ast, AstKind};
+    pub use z3::*;
     // who uses `zero`/`one`/`abs`/`iter`/`clamp` submodule anyway
     #[allow(ambiguous_glob_reexports, clippy::useless_attribute)]
     pub use num::*;

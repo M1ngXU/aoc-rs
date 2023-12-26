@@ -60,7 +60,7 @@ fn one() {
             _ => {}
         }
     }
-    let mut cycles = HashMap::new();
+    let mut cycles: HashMap<&str, HashSet<i64>> = HashMap::new();
     cycles.insert("broadcaster", HashSet::from([1i64]));
     // loop {
     //     let mut changed = false;

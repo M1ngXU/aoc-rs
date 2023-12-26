@@ -20,12 +20,13 @@ serde_json = "1.0.108"
 gcd = "2.3.0"
 linked-hash-map = "0.5.6"
 num = { version = "0.4.1", features = ["num-bigint", "rand", "serde"] }
-nalgebra = { version = "0.32.3", features = ["rand"] }
+nalgebra = { version = "0.32.3", features = ["rand", "sparse"] }
 rand = "0.8.5"
 rand_distr = "0.4.3"
 rustworkx-core = "0.13.2"
 hashbrown = { version = "0.14.3", features = ["rayon", "nightly", "serde"] }
 petgraph = "0.6.4"
+z3 = { git = "https://github.com/prove-rs/z3.rs.git", version = "0.12.1", features = ["bundled"] }
 
 [features]
 ex = []
