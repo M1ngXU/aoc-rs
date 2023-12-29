@@ -1,4 +1,4 @@
-#![feature(iter_repeat_n, ptr_from_ref, iter_map_windows, iter_from_coroutine)]
+#![feature(iter_repeat_n, iter_map_windows, iter_from_coroutine)]
 #![cfg_attr(bootstrap, feature(generators))]
 #![cfg_attr(not(bootstrap), feature(coroutines))]
 
