@@ -112,36 +112,48 @@ pub fn leak(s: &str) -> &'static str {
 }
 
 #[macro_export]
+macro_rules! inp {
+    ($($extra:tt)*) => {{
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "benchmarking")] {
+                include_str!("input.txt")
+            } else {
+                let current = std::path::PathBuf::from(file!());
+                let dir = current.parent().unwrap();
+                download_input(dir);
+                leak(&if cfg!(any(feature = "dex", feature = "ex")) {
+                        std::fs::read_to_string(dir.join($($extra)*)).unwrap()
+                } else {
+                        std::fs::read_to_string(dir.join("input.txt")).unwrap()
+                })
+            }
+        }
+    }};
+}
+pub use inp;
+
+#[macro_export]
 /// parses `input.txt` using the parsers, then unwraps. leaks the input string
 macro_rules! pi {
-	($example:literal: $($t:tt)*) => {{
+	($example:literal: ($($f:tt)*): $($t:tt)*) => {{
 		// no need to make $($t)* mutable for the caller
+        let f = $($f)*;
 		let mut p = $($t)*;
-        if cfg!(feature = "benchmarking") {
-            p(include_str!("input.txt")).p()
-        } else {
-            let current = std::path::PathBuf::from(file!());
-            let dir = current.parent().unwrap();
-            download_input(dir);
-            let s = leak(&if cfg!(any(feature = "dex", feature = "ex")) {
-                    std::fs::read_to_string(dir.join($example)).unwrap()
+        let s = leak(&f(inp!($example)));
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "dex")] {
+                dbg!(p(s).p())
             } else {
-                    std::fs::read_to_string(dir.join("input.txt")).unwrap()
-            });
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "dex")] {
-                    dbg!(p(s).p())
-                } else if #[cfg(feature = "ex")] {
-                    p(s).p()
-                } else {
-                    p(s).p()
-                }
+                p(s).p()
             }
         }
 	}};
+    (($($f:tt)*): $($t:tt)*) => {
+        pi!("example.txt": ($($f)*): $($t)*)
+    };
     ($($t:tt)*) => {
-        pi!("example.txt": $($t)*)
-    }
+        pi!("example.txt": (|s| s): $($t)*)
+    };
 }
 pub use pi;
 
@@ -447,6 +459,9 @@ macro_rules! parser {
     };
     (($($t:tt)*)) => {
         parser!($($t)*)
+    };
+    (($($t:tt)*)?) => {
+        opt(parser!($($t)*))
     };
     (~ $single_token:literal > $($rest:tt)*) => {
         parser!((@ tu($single_token)) > $($rest)*)

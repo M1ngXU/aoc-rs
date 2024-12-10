@@ -71,6 +71,7 @@ pub trait Itertools2<T> {
     fn d(self) -> impl Iterator<Item = T>
     where
         T: Copy + Sub<Output = T>;
+    fn cv(self) -> Vec<T>;
 }
 impl<T: Debug, I: Iterator<Item = T>> Itertools2<T> for I {
     fn cfsa<const N: usize>(self) -> [T; N] {
@@ -88,6 +89,10 @@ impl<T: Debug, I: Iterator<Item = T>> Itertools2<T> for I {
         T: Copy + Sub<Output = T>,
     {
         self.tuple_windows().map(|(a, b)| b - a)
+    }
+
+    fn cv(self) -> Vec<T> {
+        self.collect_vec()
     }
 }
 

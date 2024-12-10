@@ -35,6 +35,24 @@ dex = []
 benchmarking = ["criterion"]
 
 [[bench]]
+name = "2402"
+path = "bin/2024/02/bin.rs"
+harness = false
+
+[[bin]]
+name = "2403"
+path = "bin/2024/03/bin.rs"
+
+[[bench]]
+name = "2403"
+path = "bin/2024/03/bin.rs"
+harness = false
+
+[[bin]]
+name = "2402"
+path = "bin/2024/02/bin.rs"
+
+[[bench]]
 name = "2401"
 path = "bin/2024/01/bin.rs"
 harness = false
