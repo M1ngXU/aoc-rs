@@ -1,4 +1,4 @@
-#![feature(iter_repeat_n, ascii_char, iter_map_windows, iter_from_coroutine)]
+#![feature(ascii_char, iter_map_windows, iter_from_coroutine)]
 
 use std::hash::Hash;
 

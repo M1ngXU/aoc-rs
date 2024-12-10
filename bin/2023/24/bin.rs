@@ -1,4 +1,4 @@
-#![feature(iter_repeat_n, iter_map_windows, iter_from_coroutine)]
+#![feature(iter_map_windows, iter_from_coroutine)]
 
 use aoc_rs::prelude::*;
 use std::ops::RangeInclusive;

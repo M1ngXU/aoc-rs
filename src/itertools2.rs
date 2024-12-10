@@ -77,7 +77,7 @@ impl<T: Debug, I: Iterator<Item = T>> Itertools2<T> for I {
         self.collect_vec().try_into().unwrap()
     }
     fn chunked_by(self, f: impl FnMut(&T) -> bool) -> Vec<Vec<T>> {
-        self.group_by(f)
+        self.chunk_by(f)
             .into_iter()
             .map(|(_, g)| g.collect_vec())
             .collect_vec()

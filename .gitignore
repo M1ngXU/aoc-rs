@@ -3,3 +3,4 @@
 **/input.txt
 **/example.txt
 .z3-trace
+.cargo/config.toml

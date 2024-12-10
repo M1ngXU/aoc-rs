@@ -1,12 +1,11 @@
-#![feature(iter_repeat_n, iter_map_windows, iter_from_coroutine)]
-#![cfg_attr(bootstrap, feature(generators))]
-#![cfg_attr(not(bootstrap), feature(coroutines))]
+#![feature(iter_map_windows, iter_from_coroutine)]
+// #![cfg_attr(bootstrap, feature(generators))]
+// #![cfg_attr(not(bootstrap), feature(coroutines))]
 
 pub mod prelude {
     pub use crate::itertools2::*;
     pub use crate::parser::*;
     pub use crate::util::*;
-    pub use hashbrown::*;
     pub use itertools::Itertools;
     pub use linked_hash_map::LinkedHashMap;
     pub use nalgebra::sparse::*;
@@ -52,7 +51,7 @@ pub mod prelude {
     pub use serde_json::*;
 
     pub use std::collections::{
-        BTreeMap, BTreeSet, BinaryHeap, Bound, LinkedList, TryReserveError, VecDeque,
+        BTreeMap, BTreeSet, BinaryHeap, Bound, LinkedList, TryReserveError, VecDeque, HashMap, HashSet
     };
     pub use std::convert::{identity, AsMut, AsRef, Infallible};
     pub use std::fs::*;

@@ -115,10 +115,9 @@ where
         <<R as DimAdd<nalgebra::Const<1>>>::Output as DimAdd<nalgebra::Const<1>>>::Output,
         <<C as DimAdd<nalgebra::Const<1>>>::Output as DimAdd<nalgebra::Const<1>>>::Output,
         <DefaultAllocator as Allocator<
-            T,
             <<R as DimAdd<nalgebra::Const<1>>>::Output as DimAdd<nalgebra::Const<1>>>::Output,
             <<C as DimAdd<nalgebra::Const<1>>>::Output as DimAdd<nalgebra::Const<1>>>::Output,
-        >>::Buffer,
+        >>::Buffer<T>,
     >;
 
     fn adj(&self, x: usize, y: usize, r: usize) -> Self::Adjacent<'_> {
