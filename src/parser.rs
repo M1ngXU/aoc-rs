@@ -117,23 +117,27 @@ macro_rules! pi {
 	($example:literal: $($t:tt)*) => {{
 		// no need to make $($t)* mutable for the caller
 		let mut p = $($t)*;
-        let current = std::path::PathBuf::from(file!());
-        let dir = current.parent().unwrap();
-        download_input(dir);
-        let s = leak(&if cfg!(any(feature = "dex", feature = "ex")) {
-				std::fs::read_to_string(dir.join($example)).unwrap()
-		} else {
-				std::fs::read_to_string(dir.join("input.txt")).unwrap()
-		});
-		cfg_if::cfg_if! {
-			if #[cfg(feature = "dex")] {
-				dbg!(p(s).p())
-			} else if #[cfg(feature = "ex")] {
-				p(s).p()
-			} else {
-				p(s).p()
-			}
-		}
+        if cfg!(feature = "benchmarking") {
+            p(include_str!("input.txt")).p()
+        } else {
+            let current = std::path::PathBuf::from(file!());
+            let dir = current.parent().unwrap();
+            download_input(dir);
+            let s = leak(&if cfg!(any(feature = "dex", feature = "ex")) {
+                    std::fs::read_to_string(dir.join($example)).unwrap()
+            } else {
+                    std::fs::read_to_string(dir.join("input.txt")).unwrap()
+            });
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "dex")] {
+                    dbg!(p(s).p())
+                } else if #[cfg(feature = "ex")] {
+                    p(s).p()
+                } else {
+                    p(s).p()
+                }
+            }
+        }
 	}};
     ($($t:tt)*) => {
         pi!("example.txt": $($t)*)

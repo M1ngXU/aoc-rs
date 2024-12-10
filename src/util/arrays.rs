@@ -2,10 +2,26 @@ use itertools::Itertools;
 
 use crate::itertools2::{Arithmetic, Itertools2};
 use std::{
+    collections::HashMap,
     fmt::Debug,
+    hash::Hash,
     iter::{Product, Sum},
     ops::Sub,
 };
+
+pub trait Freq<T: Eq + Hash + Clone> {
+    /// Count the frequency of each element in the iterator
+    fn freq(self) -> HashMap<T, isize>;
+}
+impl<T: Eq + Hash + Clone, I: IntoIterator<Item = T>> Freq<T> for I {
+    fn freq(self) -> HashMap<T, isize> {
+        let mut r = HashMap::new();
+        for t in self {
+            *r.entry(t).or_insert(0) += 1;
+        }
+        r
+    }
+}
 
 pub trait Indeces1d {
     /// equivalent to `0..self.len()`

@@ -3,6 +3,10 @@
 // #![cfg_attr(not(bootstrap), feature(coroutines))]
 
 pub mod prelude {
+    pub type I = isize;
+    pub type U = usize;
+    pub type F = f64;
+
     pub use crate::itertools2::*;
     pub use crate::parser::*;
     pub use crate::util::*;
@@ -51,7 +55,8 @@ pub mod prelude {
     pub use serde_json::*;
 
     pub use std::collections::{
-        BTreeMap, BTreeSet, BinaryHeap, Bound, LinkedList, TryReserveError, VecDeque, HashMap, HashSet
+        BTreeMap, BTreeSet, BinaryHeap, Bound, HashMap, HashSet, LinkedList, TryReserveError,
+        VecDeque,
     };
     pub use std::convert::{identity, AsMut, AsRef, Infallible};
     pub use std::fs::*;
